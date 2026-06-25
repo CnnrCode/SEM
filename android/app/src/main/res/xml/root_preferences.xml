@@ -1,0 +1,31 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/pref_category_general">
+        <EditTextPreference
+            app:key="exam_url"
+            app:title="@string/pref_exam_url_title"
+            app:useSimpleSummaryProvider="true"
+            app:defaultValue="https://www.google.com" />
+
+        <EditTextPreference
+            app:key="url_whitelist"
+            app:title="@string/pref_whitelist_title"
+            app:summary="@string/pref_whitelist_summary"
+            app:defaultValue="google.com,wikipedia.org" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/pref_category_security">
+        <EditTextPreference
+            app:key="exit_password"
+            app:title="@string/pref_exit_pwd_title"
+            app:summary="@string/pref_exit_pwd_summary"
+            app:defaultValue="admin123" />
+
+        <EditTextPreference
+            app:key="admin_password"
+            app:title="@string/pref_admin_pwd_title"
+            app:summary="@string/pref_admin_pwd_summary"
+            app:defaultValue="admin123" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

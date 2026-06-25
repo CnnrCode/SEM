@@ -1,0 +1,28 @@
+# Node dependencies
+node_modules/
+**/node_modules/
+
+# Electron build outputs and configuration
+dist/
+**/dist/
+out/
+**/out/
+*.seb-config.json
+seb-config.json
+**/seb-config.json
+**/app-update.yml
+
+# Android build outputs and config
+.gradle/
+**/build/
+**/local.properties
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

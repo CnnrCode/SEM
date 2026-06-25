@@ -1,0 +1,437 @@
+/* browser.css — Styles for the SecureExam Browser Chrome UI */
+
+:root {
+  --bg-main: #0a0e1a;
+  --bg-chrome: #13182b;
+  --bg-input: #0f1322;
+  --bg-tab-hover: rgba(255, 255, 255, 0.05);
+  --bg-tab-active: #1e293b;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent: #4f8ef7;
+  --accent-hover: #3b7ad8;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  overflow: hidden;
+}
+
+#browser-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Browser Header ────────────────────────────────────────────────────────── */
+
+#browser-header {
+  background-color: var(--bg-chrome);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
+  padding-top: 4px;
+}
+
+/* ─── Tabs Bar ──────────────────────────────────────────────────────────────── */
+
+#tabs-bar {
+  display: flex;
+  align-items: flex-end;
+  height: 38px;
+  padding: 0 8px;
+  gap: 4px;
+}
+
+#tabs-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  overflow-x: auto;
+  max-width: calc(100% - 40px);
+}
+
+/* Hide scrollbar for tabs */
+#tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  min-width: 120px;
+  max-width: 180px;
+  padding: 0 10px;
+  border-radius: 8px 8px 0 0;
+  background-color: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s, color 0.2s;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.tab:hover {
+  background-color: var(--bg-tab-hover);
+  color: var(--text-main);
+}
+
+.tab.active {
+  background-color: var(--bg-tab-active);
+  color: var(--text-main);
+  border-color: var(--border-color);
+  z-index: 2;
+}
+
+.tab-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+  margin-right: 6px;
+}
+
+.tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.tab-close:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+}
+
+#new-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+#new-tab-btn:hover {
+  background-color: var(--bg-tab-hover);
+  color: var(--text-main);
+}
+
+/* ─── Control Bar ───────────────────────────────────────────────────────────── */
+
+#control-bar {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 12px;
+  gap: 12px;
+  background-color: var(--bg-tab-active);
+  border-top: 1px solid var(--border-color);
+}
+
+#nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.nav-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* Address Container */
+
+#address-container {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  height: 32px;
+  padding: 0 12px;
+  gap: 8px;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#address-container:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(79, 142, 247, 0.25);
+}
+
+#security-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+#security-icon.secure {
+  color: var(--success);
+}
+
+#security-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+#address-input {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+}
+
+#address-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Spinner */
+#loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Chrome Actions */
+
+#chrome-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
+}
+
+.exit-btn {
+  background-color: var(--danger);
+  color: white;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.exit-btn:hover {
+  background-color: var(--danger-hover);
+}
+
+.exit-btn:active {
+  transform: scale(0.97);
+}
+
+/* ─── Main Webview Container ────────────────────────────────────────────────── */
+
+#webview-views {
+  flex-grow: 1;
+  position: relative;
+  background-color: var(--bg-main);
+}
+
+webview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+webview.hidden {
+  visibility: hidden;
+  height: 0;
+  width: 0;
+}
+
+/* ─── Exit Modal ────────────────────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 14, 26, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  transition: opacity 0.3s ease;
+}
+
+.modal-content {
+  background: var(--bg-chrome);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  width: 380px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.modal-content h3 {
+  color: var(--text-main);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.modal-content p {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.modal-content input[type="password"] {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--text-main);
+  font-size: 15px;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.modal-content input[type="password"]:focus {
+  border-color: var(--accent);
+}
+
+.error-text {
+  color: var(--danger);
+  font-size: 13px;
+  text-align: left;
+  margin-top: -8px;
+  margin-bottom: 16px;
+  padding-left: 4px;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.modal-btn {
+  flex: 1;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.modal-btn.cancel {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.modal-btn.cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-btn.submit {
+  background: var(--accent);
+  color: white;
+}
+
+.modal-btn.submit:hover {
+  background: var(--accent-hover);
+}
+
+.hidden {
+  display: none !important;
+}

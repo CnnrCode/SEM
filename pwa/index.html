@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen" />
+  <title>SecureExam — Kiosk Mode</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ─── Setup Screen ──────────────────────────────────────────────────────── -->
+<div id="setup-screen" class="screen">
+  <div class="setup-card">
+    <div class="logo">🔒</div>
+    <h1>SecureExam</h1>
+    <p class="subtitle">Web Kiosk Mode</p>
+
+    <div class="setup-form">
+      <div class="field">
+        <label for="exam-url">Exam URL</label>
+        <input type="url" id="exam-url" placeholder="https://exam.myschool.edu/quiz/123" />
+      </div>
+      <div class="field">
+        <label for="exit-pass">Exit Password (optional)</label>
+        <input type="password" id="exit-pass" placeholder="Set a password to exit kiosk" />
+      </div>
+      <button id="start-btn" class="btn-start">
+        Enter Secure Exam Mode
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </button>
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ Exam in Progress</strong>
+      <p>Do not close this tab or navigate away. All actions are monitored.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Exam Screen ───────────────────────────────────────────────────────── -->
+<div id="exam-screen" class="screen hidden">
+  <div id="top-bar">
+    <div class="top-bar-left">
+      <span class="seb-badge">🔒 SecureExam</span>
+      <span id="exam-url-display" class="exam-url-display"></span>
+    </div>
+    <button id="exit-btn" class="exit-btn">Exit Exam</button>
+  </div>
+  <iframe
+    id="exam-frame"
+    src="about:blank"
+    sandbox="allow-forms allow-scripts allow-same-origin allow-popups-to-escape-sandbox"
+    allow="camera; microphone"
+    frameborder="0"
+  ></iframe>
+</div>
+
+<!-- ─── Exit Dialog ───────────────────────────────────────────────────────── -->
+<div id="exit-dialog" class="dialog-overlay hidden">
+  <div class="dialog">
+    <h2>Exit Exam Session</h2>
+    <p>Enter the exit password to leave the secure exam environment.</p>
+    <input type="password" id="exit-dialog-input" placeholder="Exit password" autocomplete="off" />
+    <div id="exit-error" class="dialog-error hidden">Incorrect password. Please try again.</div>
+    <div class="dialog-actions">
+      <button id="exit-cancel-btn" class="btn-ghost">Cancel</button>
+      <button id="exit-confirm-btn" class="btn-danger">Exit Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Fullscreen prompt ──────────────────────────────────────────────────── -->
+<div id="fs-prompt" class="fs-prompt hidden">
+  <div class="fs-card">
+    <span style="font-size:36px">📺</span>
+    <h3>Fullscreen Required</h3>
+    <p>This exam must be taken in fullscreen mode. Please do not exit fullscreen during the exam.</p>
+    <button id="fs-btn" class="btn-start" style="margin-top:16px">Enter Fullscreen</button>
+  </div>
+</div>
+
+<script src="kiosk.js"></script>
+</body>
+</html>

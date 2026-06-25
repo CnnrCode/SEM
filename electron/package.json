@@ -1,0 +1,23 @@
+{
+  "name": "secure-exam-browser",
+  "productName": "SecureExam Browser",
+  "version": "1.0.0",
+  "description": "A secure, locked-down browser for digital exams",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "start:admin": "electron . --admin",
+    "build": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "keywords": ["exam", "secure", "browser", "kiosk"],
+  "author": "SecureExam",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {}
+}

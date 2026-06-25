@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureExam Browser</title>
+  <link rel="stylesheet" href="browser.css">
+  <script src="browser.js" defer></script>
+</head>
+<body>
+  <div id="browser-container">
+    <!-- Top Chrome Area -->
+    <header id="browser-header">
+      <!-- Tabs Bar -->
+      <div id="tabs-bar">
+        <div id="tabs-container">
+          <!-- Dynamic tabs will be injected here -->
+        </div>
+        <button id="new-tab-btn" title="New Tab (Ctrl+T)">+</button>
+      </div>
+
+      <!-- Control Bar -->
+      <div id="control-bar">
+        <div id="nav-buttons">
+          <button id="nav-back-btn" class="nav-btn" title="Back" disabled>
+            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          </button>
+          <button id="nav-forward-btn" class="nav-btn" title="Forward" disabled>
+            <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+          </button>
+          <button id="nav-refresh-btn" class="nav-btn" title="Refresh">
+            <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          </button>
+          <button id="nav-home-btn" class="nav-btn" title="Go to Exam Home">
+            <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          </button>
+        </div>
+
+        <!-- URL Input -->
+        <div id="address-container">
+          <div id="security-icon" class="secure" title="Secure Connection">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <input type="text" id="address-input" placeholder="Search or enter web address" autocomplete="off" spellcheck="false">
+          <div id="loading-spinner" class="hidden"></div>
+        </div>
+
+        <!-- Actions -->
+        <div id="chrome-actions">
+          <span id="ai-shield-badge" class="badge" title="AI Blocking Shield Active">
+            <span class="shield-icon">🛡️</span> AI Blocked
+          </span>
+          <button id="chrome-exit-btn" class="exit-btn">Exit Session</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Webviews Content Container -->
+    <main id="webview-views">
+      <!-- Webview tags will be dynamically generated here -->
+    </main>
+  </div>
+
+  <!-- Exit Verification Dialog Modal -->
+  <div id="exit-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3>Exit Exam Session</h3>
+      <p>Enter the exit password to unlock the device and close the browser.</p>
+      <input type="password" id="exit-password-input" placeholder="Password" autofocus>
+      <div id="exit-error-msg" class="error-text hidden">Incorrect exit password. Access denied.</div>
+      <div class="modal-buttons">
+        <button id="exit-cancel-btn" class="modal-btn cancel">Cancel</button>
+        <button id="exit-submit-btn" class="modal-btn submit">Exit Session</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

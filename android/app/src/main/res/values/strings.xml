@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">SecureExam Browser</string>
+    <string name="title_activity_settings">SecureExam Settings</string>
+    <string name="device_admin_label">SecureExam Lockdown Administrator</string>
+    <string name="device_admin_description">Enables advanced Kiosk mode features (system bar hiding, home/back button lock-down).</string>
+    
+    <string name="admin_password_prompt">Enter Admin Password</string>
+    <string name="admin_password_hint">Password</string>
+    <string name="invalid_password">Incorrect password. Access denied.</string>
+    
+    <string name="dialog_exit_title">Exit Session?</string>
+    <string name="dialog_exit_msg">Enter the exit password to unlock the device and close the browser.</string>
+    
+    <string name="pref_exam_url_title">Exam URL</string>
+    <string name="pref_exam_url_summary">The web page to open automatically on startup.</string>
+    <string name="pref_exit_pwd_title">Exit Password</string>
+    <string name="pref_exit_pwd_summary">Password required to exit the browser. Default: "admin123"</string>
+    <string name="pref_admin_pwd_title">Admin Settings Password</string>
+    <string name="pref_admin_pwd_summary">Password to access these settings. Default: "admin123"</string>
+    <string name="pref_whitelist_title">URL Whitelist</string>
+    <string name="pref_whitelist_summary">Comma-separated list of allowed domains (e.g. "google.com, wikipedia.org").</string>
+    
+    <string name="pref_category_general">General Settings</string>
+    <string name="pref_category_security">Security Settings</string>
+    
+    <string name="kiosk_enabled">Kiosk Mode Locked</string>
+    <string name="kiosk_disabled">Kiosk Mode Unlocked</string>
+    <string name="restricted_toast">This website is blocked under current exam rules.</string>
+</resources>

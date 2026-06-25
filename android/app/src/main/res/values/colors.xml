@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Premium Dark Theme Palette -->
+    <color name="bg_dark">#0F0F13</color>
+    <color name="bg_card">#1B1B22</color>
+    <color name="primary_indigo">#6366F1</color>
+    <color name="primary_glow">#4F46E5</color>
+    <color name="text_main">#F3F4F6</color>
+    <color name="text_muted">#9CA3AF</color>
+    <color name="border_color">#2E2E38</color>
+    <color name="accent_red">#EF4444</color>
+</resources>
