@@ -15,6 +15,8 @@ const {
   globalShortcut,
   dialog,
   clipboard,
+  Menu,
+  MenuItem,
 } = require('electron');
 const path = require('path');
 
@@ -35,6 +37,25 @@ let examMode = false;
 app.whenReady().then(() => {
   config.load();
   auditLog.init();
+  urlFilter.init();
+
+  // Create standard Edit menu so standard keyboard shortcuts (Copy, Paste, etc.) work
+  const template = [
+    {
+      label: 'Edit',
+      submenu: [
+        { label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo' },
+        { label: 'Redo', accelerator: 'CmdOrCtrl+Shift+Z', role: 'redo' },
+        { type: 'separator' },
+        { label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut' },
+        { label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy' },
+        { label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste' },
+        { label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll' }
+      ]
+    }
+  ];
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 
   const isAdminFlag = process.argv.includes('--admin');
 
@@ -191,6 +212,22 @@ function openAdminPanel(message = null) {
   });
 
   adminWindow.loadFile(path.join(__dirname, '../renderer/admin.html'));
+
+  // Enable native context menu (right-click) for copy-paste in Admin Panel
+  adminWindow.webContents.on('context-menu', (e, props) => {
+    const menu = new Menu();
+    if (props.isEditable) {
+      menu.append(new MenuItem({ label: 'Cut', role: 'cut', accelerator: 'CmdOrCtrl+X' }));
+      menu.append(new MenuItem({ label: 'Copy', role: 'copy', accelerator: 'CmdOrCtrl+C' }));
+      menu.append(new MenuItem({ label: 'Paste', role: 'paste', accelerator: 'CmdOrCtrl+V' }));
+      menu.append(new MenuItem({ type: 'separator' }));
+      menu.append(new MenuItem({ label: 'Select All', role: 'selectall', accelerator: 'CmdOrCtrl+A' }));
+      menu.popup();
+    } else if (props.selectionText && props.selectionText.trim() !== '') {
+      menu.append(new MenuItem({ label: 'Copy', role: 'copy', accelerator: 'CmdOrCtrl+C' }));
+      menu.popup();
+    }
+  });
 
   adminWindow.webContents.once('did-finish-load', () => {
     if (message) {

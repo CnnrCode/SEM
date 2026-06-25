@@ -322,7 +322,10 @@ async function setupAiBlockSection() {
   // Add domain button
   document.getElementById('add-ai-domain-btn').addEventListener('click', () => {
     const input = document.getElementById('ai-domain-input');
-    const val = input.value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const val = input.value.trim().toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .split('/')[0]
+      .replace(/^www\./, '');
     if (!val) return;
     if (customAiDomains.includes(val)) {
       showToast('Domain already in block list.', 'error');

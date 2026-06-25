@@ -9,7 +9,7 @@
  *   • New windows / popups are always denied (open in same tab instead).
  */
 
-const { shell } = require('electron');
+const { shell, session, webContents } = require('electron');
 const auditLog = require('./auditLog');
 const config = require('./config');
 
@@ -76,13 +76,16 @@ const BUILTIN_AI_DOMAINS = [
  * @param {Electron.WebContents} webContents
  */
 function attach(webContents) {
-  // Block navigation to AI domains
-  webContents.on('will-navigate', (event, url) => {
+  // Block navigation to AI domains (including subframes and programmatic loadURL)
+  webContents.on('will-frame-navigate', (event, details) => {
+    const url = details.url;
     if (isAiBlocked(url)) {
       event.preventDefault();
       auditLog.log('AI_URL_BLOCKED', { url });
-      webContents.send('url-blocked', { url, reason: 'ai' });
-      console.warn('[URLFilter] Blocked AI navigation to:', url);
+      if (details.isMainFrame) {
+        webContents.send('url-blocked', { url, reason: 'ai' });
+      }
+      console.warn('[URLFilter] Blocked AI frame navigation to:', url);
     }
   });
 
@@ -137,10 +140,13 @@ function isAiBlocked(url) {
     return false; // unparseable → allow (fail open)
   }
 
+  // Normalize hostname: strip leading 'www.' for checking
+  const normalizedHostname = hostname.replace(/^www\./, '');
+
   // Check built-in list
   for (const domain of BUILTIN_AI_DOMAINS) {
-    const d = domain.trim().toLowerCase();
-    if (hostname === d || hostname.endsWith(`.${d}`)) {
+    const d = domain.trim().toLowerCase().replace(/^www\./, '');
+    if (normalizedHostname === d || normalizedHostname.endsWith(`.${d}`)) {
       return true;
     }
   }
@@ -149,9 +155,12 @@ function isAiBlocked(url) {
   const cfg = config.get();
   const extra = cfg.blockedAiDomains || [];
   for (const domain of extra) {
-    const d = domain.trim().toLowerCase();
+    const d = domain.trim().toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .split('/')[0]
+      .replace(/^www\./, '');
     if (!d) continue;
-    if (hostname === d || hostname.endsWith(`.${d}`)) {
+    if (normalizedHostname === d || normalizedHostname.endsWith(`.${d}`)) {
       return true;
     }
   }
@@ -167,4 +176,35 @@ function getBuiltinAiDomains() {
   return [...BUILTIN_AI_DOMAINS];
 }
 
-module.exports = { attach, isAiBlocked, getBuiltinAiDomains };
+/**
+ * Set up global session-level WebRequest interceptor to block all AI traffic
+ */
+function init() {
+  session.defaultSession.webRequest.onBeforeRequest(
+    { urls: ['*://*/*'] },
+    (details, callback) => {
+      const url = details.url;
+      if (isAiBlocked(url)) {
+        auditLog.log('AI_URL_BLOCKED', { url });
+
+        if (details.resourceType === 'mainFrame' && details.webContentsId) {
+          try {
+            const wc = webContents.fromId(details.webContentsId);
+            if (wc && !wc.isDestroyed()) {
+              wc.send('url-blocked', { url, reason: 'ai' });
+            }
+          } catch (err) {
+            console.error('[URLFilter] Failed to send url-blocked event:', err);
+          }
+        }
+
+        console.warn('[URLFilter] WebRequest blocked AI navigation/resource request:', url);
+        callback({ cancel: true });
+      } else {
+        callback({ cancel: false });
+      }
+    }
+  );
+}
+
+module.exports = { init, attach, isAiBlocked, getBuiltinAiDomains };
