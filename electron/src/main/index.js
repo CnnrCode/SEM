@@ -203,7 +203,13 @@ function launchExam() {
       auditLog.log('FULLSCREEN_LOST');
       examWindow.setFullScreen(true);
       examWindow.setKiosk(true);
+    } else {
+      examWindow.webContents.send('browser:fullscreen-changed', false);
     }
+  });
+
+  examWindow.on('enter-full-screen', () => {
+    examWindow.webContents.send('browser:fullscreen-changed', true);
   });
 
   examWindow.on('blur', () => {
@@ -397,7 +403,24 @@ ipcMain.handle('admin:launchExam', () => {
 
 // Get preload path for webviews
 ipcMain.handle('browser:getPreloadPath', () => {
-  return path.join(__dirname, '../preload/examPreload.js');
+  const filePath = path.join(__dirname, '../preload/examPreload.js');
+  return require('url').pathToFileURL(filePath).href;
+});
+
+// Check if exam window is in fullscreen
+ipcMain.handle('browser:isFullScreen', () => {
+  return examWindow ? examWindow.isFullScreen() : false;
+});
+
+// Toggle fullscreen state
+ipcMain.handle('browser:toggleFullScreen', () => {
+  if (examWindow && !examWindow.isDestroyed()) {
+    const nextFS = !examWindow.isFullScreen();
+    examWindow.setFullScreen(nextFS);
+    examWindow.setKiosk(nextFS);
+    return nextFS;
+  }
+  return false;
 });
 
 // Check if user input is blocked (contains AI)
@@ -442,12 +465,6 @@ ipcMain.handle('admin:quit', () => {
 
 // Log events from renderer preloads
 ipcMain.on('exam-event', (event, { type, ...data }) => {
-  if (type === 'ZOOM_SHORTCUT') {
-    if (examWindow && !examWindow.isDestroyed()) {
-      examWindow.webContents.send('browser:zoom', data.key);
-    }
-    return;
-  }
   auditLog.log(type, data);
 });
 
@@ -495,14 +512,14 @@ function setupDownloadHandler() {
   });
 }
 
+// (Webview registry removed - zoom and navigation are handled locally in renderer/preload)
+
 // Attach URL filter to any webviews that get created, and push config into them
 app.on('web-contents-created', (event, contents) => {
   if (contents.getType() === 'webview') {
     urlFilter.attach(contents);
 
     // Push config directly from the main process on every page load.
-    // This is the only IPC path guaranteed to reach ipcRenderer.on() inside a
-    // sandboxed webview preload regardless of contextIsolation settings.
     contents.on('dom-ready', () => {
       const cfg = config.get();
       // Strip sensitive fields before sending
@@ -512,6 +529,10 @@ app.on('web-contents-created', (event, contents) => {
       delete safeCfg.adminPasswordHash;
       delete safeCfg.adminPasswordSalt;
       contents.send('seb:config', safeCfg);
+    });
+
+    contents.on('console-message', (event, level, message, line, sourceId) => {
+      console.log(`[Webview Console] ${message} (at ${sourceId}:${line})`);
     });
   }
 });

@@ -38,8 +38,8 @@
 
         <!-- URL Input -->
         <div id="address-container">
-          <div id="security-icon" class="secure" title="Secure Connection">
-            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          <div id="address-left-icon" title="Search Google">
+            <svg class="search-google-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22c-.22-.66-.35-1.36-.35-2.09z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
           </div>
           <input type="text" id="address-input" placeholder="Search or enter web address" autocomplete="off" spellcheck="false">
           <div id="loading-spinner" class="hidden"></div>
@@ -57,9 +57,64 @@
             <span class="shield-icon">🛡️</span> AI Blocked
           </span>
           <button id="chrome-exit-btn" class="exit-btn">Exit Session</button>
+          <button id="chrome-menu-btn" class="menu-btn" title="Main Menu">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="currentColor"/></svg>
+          </button>
         </div>
       </div>
     </header>
+
+    <!-- Main Hamburger Dropdown Menu -->
+    <div id="menu-dropdown" class="menu-dropdown hidden">
+      <div class="menu-item" id="menu-item-new-tab">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="menu-svg-icon"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span class="menu-item-text">New Tab</span>
+        <span class="menu-item-shortcut">Ctrl+T</span>
+      </div>
+      <div class="menu-item" id="menu-item-reload">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="menu-svg-icon"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span class="menu-item-text">Reload Tab</span>
+        <span class="menu-item-shortcut">Ctrl+R</span>
+      </div>
+      <div class="menu-item" id="menu-item-downloads">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="menu-svg-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span class="menu-item-text">Downloads</span>
+        <span class="menu-item-shortcut">Ctrl+J</span>
+      </div>
+      <div class="menu-item" id="menu-item-magnifier">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="menu-svg-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <span class="menu-item-text">Magnifier</span>
+        <span class="menu-item-shortcut">Ctrl+M</span>
+      </div>
+      
+      <div class="menu-divider"></div>
+      
+      <!-- Zoom Controls Row -->
+      <div class="menu-zoom-row">
+        <span class="menu-zoom-label">Zoom</span>
+        <button class="menu-zoom-btn-action" id="menu-zoom-out">−</button>
+        <span class="menu-zoom-value" id="menu-zoom-percentage">100%</span>
+        <button class="menu-zoom-btn-action" id="menu-zoom-in">+</button>
+        <button class="menu-zoom-btn-action" id="menu-zoom-fullscreen" title="Toggle Fullscreen">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="menu-divider"></div>
+      
+      <div class="menu-item status-item" id="menu-item-shield">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="menu-svg-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span class="menu-item-text">AI Shield Status</span>
+        <span class="menu-item-shortcut status-active">Active</span>
+      </div>
+      <div class="menu-item danger-item" id="menu-item-exit">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="menu-svg-icon"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        <span class="menu-item-text">Exit Session</span>
+        <span class="menu-item-shortcut">Ctrl+Q</span>
+      </div>
+    </div>
 
     <!-- Webviews Content Container -->
     <main id="webview-views">
@@ -97,6 +152,11 @@
     <button id="popover-zoom-in" class="popover-btn" title="Zoom In">+</button>
     <div class="popover-separator"></div>
     <button id="popover-zoom-reset" class="popover-reset-btn">Reset</button>
+  </div>
+
+  <!-- Windows Magnifier Lens Overlay -->
+  <div id="magnifier-lens" class="hidden">
+    <div id="magnifier-lens-badge">2.0x</div>
   </div>
 </body>
 </html>

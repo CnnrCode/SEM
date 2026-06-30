@@ -31,5 +31,10 @@ contextBridge.exposeInMainWorld('sebBrowser', {
   },
   onZoom: (callback) => {
     ipcRenderer.on('browser:zoom', (event, key) => callback(key));
+  },
+  isFullScreen: () => ipcRenderer.invoke('browser:isFullScreen'),
+  toggleFullScreen: () => ipcRenderer.invoke('browser:toggleFullScreen'),
+  onFullscreenChanged: (callback) => {
+    ipcRenderer.on('browser:fullscreen-changed', (event, isFS) => callback(isFS));
   }
 });

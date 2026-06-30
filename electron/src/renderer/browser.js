@@ -196,6 +196,36 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.preventDefault();
       navigateRefresh();
     }
+
+    // Ctrl + M -> Toggle Magnifier
+    if (e.ctrlKey && e.key.toLowerCase() === 'm') {
+      e.preventDefault();
+      toggleMagnifier();
+    }
+
+    // Zoom shortcuts
+    const isControl = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
+    const isPlus = key === '+' || key === '=' || key === 'add';
+    const isMinus = key === '-' || key === 'subtract';
+    const isReset = key === '0';
+
+    if (isControl && (isPlus || isMinus || isReset)) {
+      e.preventDefault();
+      if (isMagnifierActive) {
+        // Zoom magnifier lens instead of the page zoom
+        if (isPlus) magnifierScale = Math.min(4.0, magnifierScale + 0.2);
+        else if (isMinus) magnifierScale = Math.max(1.5, magnifierScale - 0.2);
+        else if (isReset) magnifierScale = 2.0;
+        
+        const badge = document.getElementById('magnifier-lens-badge');
+        if (badge) badge.textContent = `${magnifierScale.toFixed(1)}x`;
+      } else {
+        if (isPlus) zoomActiveTab(0.1);
+        else if (isMinus) zoomActiveTab(-0.1);
+        else if (isReset) resetZoomActiveTab();
+      }
+    }
   });
 
   // Handle Close Attempt from OS (Main Process IPC)
@@ -212,6 +242,139 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.sebBrowser.onShowBlockedToast(({ url }) => {
     showBlockedToast(url);
   });
+
+  // Fullscreen & Exit Session button visibility handling (only show in fullscreen mode)
+  const exitBtn = document.getElementById('chrome-exit-btn');
+  const updateExitButtonVisibility = (isFS) => {
+    if (exitBtn) {
+      if (isFS) {
+        exitBtn.classList.remove('hidden');
+      } else {
+        exitBtn.classList.add('hidden');
+      }
+    }
+  };
+
+  // Init visibility state
+  const initialFS = await window.sebBrowser.isFullScreen();
+  updateExitButtonVisibility(initialFS);
+
+  // Listen for dynamic changes
+  window.sebBrowser.onFullscreenChanged((isFS) => {
+    updateExitButtonVisibility(isFS);
+  });
+
+  // ─── Hamburger Dropdown Menu Event Handlers ────────────────────────────────
+  const menuBtn = document.getElementById('chrome-menu-btn');
+  const menuDropdown = document.getElementById('menu-dropdown');
+
+  if (menuBtn && menuDropdown) {
+    // Toggle Menu
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menuDropdown.classList.toggle('hidden');
+    });
+
+    // Close Menu on clicking outside
+    document.addEventListener('click', (e) => {
+      if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
+        menuDropdown.classList.add('hidden');
+      }
+    });
+
+    // Menu Actions Setup
+    
+    // New Tab
+    const mNewTab = document.getElementById('menu-item-new-tab');
+    if (mNewTab) {
+      mNewTab.addEventListener('click', () => {
+        menuDropdown.classList.add('hidden');
+        createTab(config?.examUrl || 'https://www.google.com/', true);
+      });
+    }
+
+    // Reload Tab
+    const mReload = document.getElementById('menu-item-reload');
+    if (mReload) {
+      mReload.addEventListener('click', () => {
+        menuDropdown.classList.add('hidden');
+        navigateRefresh();
+      });
+    }
+
+    // Downloads
+    const mDownloads = document.getElementById('menu-item-downloads');
+    if (mDownloads) {
+      mDownloads.addEventListener('click', () => {
+        menuDropdown.classList.add('hidden');
+        showToast('SecureExam Browser protects downloads. All downloaded exam files are saved directly in your Windows downloads folder.', 'info');
+      });
+    }
+
+    // Zoom Out
+    const mZoomOut = document.getElementById('menu-zoom-out');
+    if (mZoomOut) {
+      mZoomOut.addEventListener('click', (e) => {
+        e.stopPropagation();
+        zoomActiveTab(-0.1);
+      });
+    }
+
+    // Zoom In
+    const mZoomIn = document.getElementById('menu-zoom-in');
+    if (mZoomIn) {
+      mZoomIn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        zoomActiveTab(0.1);
+      });
+    }
+
+    // Toggle Fullscreen
+    const mFullscreen = document.getElementById('menu-zoom-fullscreen');
+    if (mFullscreen) {
+      mFullscreen.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        menuDropdown.classList.add('hidden');
+        await window.sebBrowser.toggleFullScreen();
+      });
+    }
+
+    // Exit Session
+    const mExit = document.getElementById('menu-item-exit');
+    if (mExit) {
+      mExit.addEventListener('click', () => {
+        menuDropdown.classList.add('hidden');
+        showExitPrompt();
+      });
+    }
+
+    // Magnifier Menu Action
+    const mMagnifier = document.getElementById('menu-item-magnifier');
+    if (mMagnifier) {
+      mMagnifier.addEventListener('click', () => {
+        menuDropdown.classList.add('hidden');
+        toggleMagnifier();
+      });
+    }
+
+    // Hide lens if mouse moves over the chrome toolbar area
+    const header = document.getElementById('browser-header');
+    if (header) {
+      header.addEventListener('mousemove', () => {
+        if (isMagnifierActive) {
+          const lens = document.getElementById('magnifier-lens');
+          if (lens) lens.style.display = 'none';
+        }
+      });
+    }
+
+    // Global Esc key handling for magnifier cancel
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isMagnifierActive) {
+        toggleMagnifier();
+      }
+    });
+  }
 });
 
 // ─── Tab Management ─────────────────────────────────────────────────────────
@@ -224,6 +387,7 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
   tabEl.className = 'tab';
   tabEl.id = `tab-control-${id}`;
   tabEl.innerHTML = `
+    <svg class="tab-chrome-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M12 0C8.16 0 4.87 2.15 3.16 5.33l4.89 8.46c.14-.52.54-.95 1.07-1.16l2.88-5c1.1-1.9 3.53-2.55 5.43-1.45.69.4 1.23.99 1.57 1.7L22 4.41C19.72 1.7 16.08 0 12 0z"/><path fill="#EA4335" d="M23.63 7.82c-.88-2.62-2.57-4.88-4.82-6.41l-3.87 6.7c1.37.79 1.84 2.54 1.05 3.91-.29.5-.73.87-1.25 1.05l-4.14 7.17C11 20.31 11.5 20.3 12 20.3c4.58 0 8.3-3.72 8.3-8.3 0-1.52-.41-2.94-1.12-4.18z"/><path fill="#FBBC05" d="M9.16 11.63L3.16 1.25A12.016 12.016 0 0 0 .37 16.18l3.87 6.7c-.52-.18-.95-.59-1.16-1.12-.79-1.37-.32-3.12 1.05-3.91l4.14-7.17c.29-.5.73-.87 1.25-1.05z"/><path fill="#FFF" d="M12 7.7c-2.37 0-4.3 1.93-4.3 4.3s1.93 4.3 4.3 4.3 4.3-1.93 4.3-4.3S14.37 7.7 12 7.7z"/><path fill="#4285F4" d="M12 8.7c-1.82 0-3.3 1.48-3.3 3.3s1.48 3.3 3.3 3.3 3.3-1.48 3.3-3.3-1.48-3.3-3.3-3.3z"/></svg>
     <span class="tab-title" id="tab-title-${id}">${customTitle}</span>
     ${canClose ? `<span class="tab-close" id="tab-close-${id}">✕</span>` : ''}
   `;
@@ -234,9 +398,7 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
   webview.setAttribute('src', url);
   // Ensure preload is injected
   if (examPreloadPath) {
-    // Convert Windows backslashes to forward slashes for URL format in preload attribute
-    const preloadUrl = 'file:///' + examPreloadPath.replace(/\\/g, '/');
-    webview.setAttribute('preload', preloadUrl);
+    webview.setAttribute('preload', examPreloadPath);
   }
   
   // Set safety attributes
@@ -267,11 +429,7 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
     switchTab(id);
   });
 
-  tabEl.addEventListener('dblclick', (e) => {
-    if (canClose) {
-      closeTab(id);
-    }
-  });
+  // Double click to close tab removed by request
 
   tabEl.addEventListener('contextmenu', (e) => {
     e.preventDefault();
@@ -294,6 +452,9 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
 }
 
 function switchTab(id) {
+  if (isMagnifierActive) {
+    toggleMagnifier();
+  }
   const previousTab = tabs.find(t => t.id === activeTabId);
   const currentTab = tabs.find(t => t.id === id);
 
@@ -398,6 +559,77 @@ function setupWebviewEvents(tab) {
   // Handle window.close() inside webview
   webviewElement.addEventListener('close', () => {
     closeTab(id);
+  });
+
+  // Re-apply zoom on dom-ready (since Chromium resets zoom on navigation)
+  webviewElement.addEventListener('dom-ready', () => {
+    try {
+      webviewElement.send('guest:set-zoom', tab.zoomFactor);
+    } catch (err) {
+      console.error('[Browser] Failed to send guest:set-zoom on dom-ready:', err);
+    }
+  });
+
+  // Listen for local zoom and magnifier changes from the guest page
+  webviewElement.addEventListener('ipc-message', (e) => {
+    if (e.channel === 'webview-zoom-changed') {
+      const { zoomFactor } = e.args[0];
+      tab.zoomFactor = zoomFactor;
+      updateZoomUI(tab);
+    } else if (e.channel === 'guest-magnifier-move') {
+      const { x, y, scrollX, scrollY } = e.args[0];
+      lastMouseX = x;
+      lastMouseY = y;
+      currentScrollX = scrollX;
+      currentScrollY = scrollY;
+      
+      const lens = document.getElementById('magnifier-lens');
+      const badge = document.getElementById('magnifier-lens-badge');
+      if (lens && isMagnifierActive) {
+        const rect = webviewElement.getBoundingClientRect();
+        const hostX = rect.left + x;
+        const hostY = rect.top + y;
+        
+        // Position lens centered on mouse cursor
+        const lensWidth = 260;
+        const lensHeight = 160;
+        
+        lens.style.display = 'block';
+        lens.style.left = `${hostX - lensWidth / 2}px`;
+        lens.style.top = `${hostY - lensHeight / 2}px`;
+        
+        // Calculate scroll delta from snapshot time
+        const deltaX = scrollX - scrollXAtCapture;
+        const deltaY = scrollY - scrollYAtCapture;
+        
+        // Offset the crop coordinate by the scroll delta
+        const cropX = x + deltaX;
+        const cropY = y + deltaY;
+        
+        // Calculate background crop zoom positioning
+        const bgX = -cropX * magnifierScale + lensWidth / 2;
+        const bgY = -cropY * magnifierScale + lensHeight / 2;
+        
+        lens.style.backgroundPosition = `${bgX}px ${bgY}px`;
+        lens.style.backgroundSize = `${rect.width * magnifierScale}px ${rect.height * magnifierScale}px`;
+        
+        if (badge) badge.textContent = `${magnifierScale.toFixed(1)}x`;
+      }
+    } else if (e.channel === 'guest-magnifier-scroll-ended') {
+      refreshMagnifierSnapshot();
+    } else if (e.channel === 'guest-magnifier-zoom') {
+      const action = e.args[0];
+      if (action === 'in') {
+        magnifierScale = Math.min(4.0, magnifierScale + 0.2);
+      } else if (action === 'out') {
+        magnifierScale = Math.max(1.5, magnifierScale - 0.2);
+      }
+      
+      const badge = document.getElementById('magnifier-lens-badge');
+      if (badge) badge.textContent = `${magnifierScale.toFixed(1)}x`;
+      
+      refreshMagnifierSnapshot();
+    }
   });
 }
 
@@ -546,9 +778,9 @@ function zoomActiveTab(delta) {
   
   tab.zoomFactor = parseFloat(newZoom.toFixed(1));
   try {
-    tab.webviewElement.setZoomFactor(tab.zoomFactor);
+    tab.webviewElement.send('guest:set-zoom', tab.zoomFactor);
   } catch (err) {
-    console.error('Failed to set zoom factor:', err);
+    console.error('[Browser] Failed to send guest:set-zoom:', err);
   }
   
   updateZoomUI(tab);
@@ -563,9 +795,9 @@ function resetZoomActiveTab() {
   
   tab.zoomFactor = 1.0;
   try {
-    tab.webviewElement.setZoomFactor(1.0);
+    tab.webviewElement.send('guest:set-zoom', 1.0);
   } catch (err) {
-    console.error('Failed to reset zoom factor:', err);
+    console.error('[Browser] Failed to send guest:set-zoom (reset):', err);
   }
   
   updateZoomUI(tab);
@@ -578,6 +810,9 @@ function updateZoomUI(tab) {
   const percentage = Math.round(tab.zoomFactor * 100);
   if (addressZoomText) addressZoomText.textContent = `${percentage}%`;
   if (popoverZoomVal) popoverZoomVal.textContent = `${percentage}%`;
+  
+  const menuZoomPercentage = document.getElementById('menu-zoom-percentage');
+  if (menuZoomPercentage) menuZoomPercentage.textContent = `${percentage}%`;
   
   if (addressZoomBtn) {
     if (percentage === 100) {
@@ -633,4 +868,82 @@ function showTabContextMenu(tabId, x, y) {
   setTimeout(() => {
     document.addEventListener('click', dismissMenu);
   }, 10);
+}
+
+// ─── Live Magnifier Lens Tool ───────────────────────────────────────────────
+
+let isMagnifierActive = false;
+let magnifierScale = 2.0; // Default 2x zoom factor
+let lastMouseX = 200;
+let lastMouseY = 200;
+let scrollXAtCapture = 0;
+let scrollYAtCapture = 0;
+let currentScrollX = 0;
+let currentScrollY = 0;
+
+async function toggleMagnifier() {
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (!tab) return;
+  
+  const lens = document.getElementById('magnifier-lens');
+  if (!lens) return;
+  
+  if (isMagnifierActive) {
+    // Deactivate
+    isMagnifierActive = false;
+    lens.classList.add('hidden');
+    lens.style.display = 'none';
+    lens.style.opacity = '0';
+    tab.webviewElement.send('guest:set-magnifier-active', false);
+  } else {
+    // Activate
+    isMagnifierActive = true;
+    tab.webviewElement.send('guest:set-magnifier-active', true);
+    
+    // Position lens immediately at the last known coordinates
+    const rect = tab.webviewElement.getBoundingClientRect();
+    const hostX = rect.left + lastMouseX;
+    const hostY = rect.top + lastMouseY;
+    const lensWidth = 260;
+    const lensHeight = 160;
+    
+    lens.style.left = `${hostX - lensWidth / 2}px`;
+    lens.style.top = `${hostY - lensHeight / 2}px`;
+    lens.style.opacity = '0';
+    
+    // Capture initial snapshot
+    await refreshMagnifierSnapshot();
+    
+    // Force set the initial background image slice position taking scroll offsets into account
+    const deltaX = currentScrollX - scrollXAtCapture;
+    const deltaY = currentScrollY - scrollYAtCapture;
+    const cropX = lastMouseX + deltaX;
+    const cropY = lastMouseY + deltaY;
+    
+    const bgX = -cropX * magnifierScale + lensWidth / 2;
+    const bgY = -cropY * magnifierScale + lensHeight / 2;
+    lens.style.backgroundPosition = `${bgX}px ${bgY}px`;
+    lens.style.backgroundSize = `${rect.width * magnifierScale}px ${rect.height * magnifierScale}px`;
+    
+    lens.classList.remove('hidden');
+    lens.style.display = 'block';
+    lens.style.opacity = '1';
+  }
+}
+
+async function refreshMagnifierSnapshot() {
+  const tab = tabs.find(t => t.id === activeTabId);
+  const lens = document.getElementById('magnifier-lens');
+  if (!tab || !lens || !isMagnifierActive) return;
+  
+  try {
+    const img = await tab.webviewElement.capturePage();
+    lens.style.backgroundImage = `url(${img.toDataURL()})`;
+    
+    // Save the baseline scroll offset coordinates at capture time
+    scrollXAtCapture = currentScrollX;
+    scrollYAtCapture = currentScrollY;
+  } catch (err) {
+    console.error('[Browser] Magnifier capture failed:', err);
+  }
 }

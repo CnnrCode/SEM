@@ -7,10 +7,21 @@
  *   2. ipcRenderer.invoke fallback in case the push is missed
  */
 
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, webFrame } = require('electron');
 
 let cfg = null;
 let configApplied = false;
+let cfgZoomFactor = 1.0;
+
+// Listen for zoom commands from the host window
+ipcRenderer.on('guest:set-zoom', (event, factor) => {
+  cfgZoomFactor = factor;
+  try {
+    webFrame.setZoomFactor(factor);
+  } catch (err) {
+    console.error('[Preload] Failed to set zoom factor:', err);
+  }
+});
 
 function applyConfig(receivedConfig) {
   if (configApplied) return; // only apply once
@@ -89,203 +100,77 @@ document.addEventListener('drop', (e) => {
   e.preventDefault();
 }, true);
 
-// ─── Custom overlay styles (CSS-based) ──────────────────
+// (Overlay exit dialog and floating close styles removed)
 
-const style = document.createElement('style');
-style.textContent = `
-  /* Floating X close button */
-  #__seb_floating_close_btn {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 44px;
-    height: 44px;
-    background: rgba(15, 23, 42, 0.7) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    color: #ffffff !important;
-    font-size: 20px !important;
-    font-weight: 300 !important;
-    cursor: pointer !important;
-    z-index: 2147483645 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    transition: all 0.3s ease !important;
-    user-select: none !important;
-    -webkit-user-select: none !important;
-  }
-  
-  #__seb_floating_close_btn:hover {
-    background: rgba(239, 68, 68, 0.9) !important;
-    border-color: rgba(239, 68, 68, 0.4) !important;
-    transform: scale(1.1) !important;
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important;
-  }
-  
-  /* Password Exit dialog styles */
-  #__seb_exit_dialog {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(10, 14, 26, 0.85) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    z-index: 2147483647 !important;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  }
-  
-  #__seb_exit_password_input:focus {
-    border-color: #6366f1 !important;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
-  }
-  
-  .__seb_exit_btn {
-    flex: 1;
-    border: none;
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-  }
-  
-  #__seb_exit_cancel_btn {
-    background: rgba(255, 255, 255, 0.05) !important;
-    color: #d1d5db !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  }
-  
-  #__seb_exit_cancel_btn:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-  }
-  
-  #__seb_exit_submit_btn {
-    background: #6366f1 !important;
-    color: white !important;
-    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3) !important;
-    font-weight: 600 !important;
-  }
-  
-  #__seb_exit_submit_btn:hover {
-    background: #4f46e5 !important;
-  }
-`;
-document.head.appendChild(style);
+_setupZoomShortcuts();
 
 // Initialize on DOM load
 window.addEventListener('DOMContentLoaded', () => {
-  _injectFloatingCloseButton();
   _setupGoogleAiShield();
-  _setupZoomShortcuts();
 });
 
 function _setupZoomShortcuts() {
-  window.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', (e) => {
     const isControl = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
     
-    // Zoom shortcuts: Ctrl+Plus (or Ctrl+=), Ctrl+Minus, Ctrl+0
-    if (isControl && (key === '+' || key === '-' || key === '=' || key === '0')) {
+    const isPlus = key === '+' || key === '=' || key === 'add';
+    const isMinus = key === '-' || key === 'subtract';
+    const isReset = key === '0';
+    
+    let zoomAction = null;
+    if (isPlus) zoomAction = 'in';
+    else if (isMinus) zoomAction = 'out';
+    else if (isReset) zoomAction = 'reset';
+    
+    if (isControl && zoomAction !== null) {
       e.preventDefault();
-      ipcRenderer.send('exam-event', { type: 'ZOOM_SHORTCUT', key: e.key });
+      handleLocalZoom(zoomAction);
     }
   }, true);
 
-  window.addEventListener('wheel', (e) => {
+  document.addEventListener('wheel', (e) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       if (e.deltaY < 0) {
-        // Scroll up -> Zoom In
-        ipcRenderer.send('exam-event', { type: 'ZOOM_SHORTCUT', key: '+' });
+        handleLocalZoom('in');
       } else if (e.deltaY > 0) {
-        // Scroll down -> Zoom Out
-        ipcRenderer.send('exam-event', { type: 'ZOOM_SHORTCUT', key: '-' });
+        handleLocalZoom('out');
       }
     }
-  }, { passive: false });
+  }, { capture: true, passive: false });
 }
 
-function _injectFloatingCloseButton() {
-  // Prevent duplicate floating buttons
-  if (document.getElementById('__seb_floating_close_btn')) return;
+function handleLocalZoom(action) {
+  if (magnifierActive) {
+    ipcRenderer.sendToHost('guest-magnifier-zoom', action);
+    return;
+  }
 
-  const btn = document.createElement('div');
-  btn.id = '__seb_floating_close_btn';
-  btn.innerHTML = '✕';
-  btn.title = 'Exit Exam';
+  let newZoom = cfgZoomFactor;
+  if (action === 'in') {
+    newZoom += 0.1;
+  } else if (action === 'out') {
+    newZoom -= 0.1;
+  } else if (action === 'reset') {
+    newZoom = 1.0;
+  }
   
-  btn.addEventListener('click', () => {
-    _showExitDialog();
-  });
+  newZoom = Math.max(0.5, Math.min(3.0, newZoom));
+  cfgZoomFactor = parseFloat(newZoom.toFixed(1));
   
-  document.body.appendChild(btn);
+  try {
+    webFrame.setZoomFactor(cfgZoomFactor);
+    // Tell the host window that zoom changed
+    ipcRenderer.sendToHost('webview-zoom-changed', { zoomFactor: cfgZoomFactor });
+    // Log event to main process
+    ipcRenderer.send('exam-event', { type: 'BROWSER_ZOOM_CHANGED', level: `${Math.round(cfgZoomFactor * 100)}%` });
+  } catch (err) {
+    console.error('[Preload] Failed to apply local zoom:', err);
+  }
 }
 
-function _showExitDialog() {
-  // Prevent duplicate dialogs
-  if (document.getElementById('__seb_exit_dialog')) return;
-  
-  const dialog = document.createElement('div');
-  dialog.id = '__seb_exit_dialog';
-  dialog.innerHTML = `
-    <div style="
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 32px 40px;
-      width: 380px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-      text-align: center;
-      box-sizing: border-box;
-    ">
-      <h3 style="color: #f3f4f6; margin: 0 0 12px; font-size: 20px; font-weight: 600;">Exit Exam Session</h3>
-      <p style="color: #9ca3af; margin: 0 0 24px; font-size: 14px; line-height: 1.5; text-align: center;">
-        Are you sure you want to exit the exam session? Unsaved changes may be lost.
-      </p>
-      
-      <div style="display: flex; gap: 12px; margin-top: 16px; width: 100%;">
-        <button id="__seb_exit_cancel_btn" class="__seb_exit_btn">Cancel</button>
-        <button id="__seb_exit_submit_btn" class="__seb_exit_btn">Exit Session</button>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(dialog);
-  
-  const cancelBtn = dialog.querySelector('#__seb_exit_cancel_btn');
-  const submitBtn = dialog.querySelector('#__seb_exit_submit_btn');
-  
-  cancelBtn.addEventListener('click', () => {
-    dialog.remove();
-  });
-  
-  const attemptExit = async () => {
-    try {
-      await ipcRenderer.invoke('admin:quit');
-    } catch (err) {
-      console.error('Exit failed:', err);
-    }
-  };
-  
-  submitBtn.addEventListener('click', attemptExit);
-  
-  window.addEventListener('keydown', function escHandler(e) {
-    if (e.key === 'Escape') {
-      dialog.remove();
-      window.removeEventListener('keydown', escHandler);
-    }
-  });
-}
+// (Overlay exit dialog and floating close functions removed)
 
 // Blocked overlay removed in favor of chrome-level custom Toast notifications.
 
@@ -360,3 +245,63 @@ function _setupGoogleAiShield() {
     subtree: true
   });
 }
+
+// ─── Magnifier Loupe Events ──────────────────────────────────────────────
+let magnifierActive = false;
+let localLastX = 200;
+let localLastY = 200;
+let frameRequested = false;
+let scrollTimeout = null;
+
+function triggerCoordinatesReport() {
+  if (!frameRequested) {
+    frameRequested = true;
+    requestAnimationFrame(() => {
+      frameRequested = false;
+      if (magnifierActive) {
+        ipcRenderer.sendToHost('guest-magnifier-move', {
+          x: localLastX,
+          y: localLastY,
+          scrollX: window.scrollX,
+          scrollY: window.scrollY
+        });
+      }
+    });
+  }
+}
+
+ipcRenderer.on('guest:set-magnifier-active', (event, active) => {
+  magnifierActive = active;
+  if (active) {
+    // Reply immediately with the last known position and scroll offsets to prevent blinking
+    ipcRenderer.sendToHost('guest-magnifier-move', {
+      x: localLastX,
+      y: localLastY,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY
+    });
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  localLastX = e.clientX;
+  localLastY = e.clientY;
+  
+  if (magnifierActive) {
+    triggerCoordinatesReport();
+  }
+});
+
+document.addEventListener('scroll', () => {
+  if (magnifierActive) {
+    triggerCoordinatesReport();
+    
+    // Debounce the snapshot recapture until scrolling stops
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      if (magnifierActive) {
+        ipcRenderer.sendToHost('guest-magnifier-scroll-ended');
+      }
+    }, 200);
+  }
+}, true);
