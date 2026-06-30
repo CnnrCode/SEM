@@ -5,7 +5,7 @@ const path = require('path');
 // We use app.whenReady() because Electron APIs require the app to be ready
 app.whenReady().then(() => {
   try {
-    const srcPath = 'C:\\Users\\Symphonics Co. Ltd\\.gemini\\antigravity-ide\\brain\\3fcb112a-e587-4b80-9294-6399d84a5561\\secure_exam_icon_1782371884093.png';
+    const srcPath = path.join(__dirname, 'src/renderer/prodigy.png');
     const buildDir = path.join(__dirname, 'build');
 
     if (!fs.existsSync(buildDir)) {

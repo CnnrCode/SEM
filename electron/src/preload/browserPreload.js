@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('sebBrowser', {
   getConfig: () => ipcRenderer.invoke('admin:getConfig'),
   getExamPreloadPath: () => ipcRenderer.invoke('browser:getPreloadPath'),
   hasExitPassword: () => ipcRenderer.invoke('exam:hasExitPassword'),
+  checkBlocked: (text) => ipcRenderer.invoke('browser:checkBlocked', text),
 
   // Control & Exit
   quit: (password) => ipcRenderer.invoke('admin:quit', password),
@@ -21,5 +22,8 @@ contextBridge.exposeInMainWorld('sebBrowser', {
   },
   onOpenTab: (callback) => {
     ipcRenderer.on('browser:open-tab', (event, url) => callback(url));
+  },
+  onShowBlockedToast: (callback) => {
+    ipcRenderer.on('browser:show-blocked-toast', (event, data) => callback(data));
   }
 });

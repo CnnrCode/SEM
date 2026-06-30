@@ -32,13 +32,17 @@ const FEATURE_META = {
     name: 'Fullscreen Lockdown',
     desc: 'Forces the exam into fullscreen kiosk mode — cannot be minimized or closed',
   },
-  blockDevTools: {
-    name: 'Block Developer Tools',
-    desc: 'Blocks F12, Ctrl+Shift+I, and all DevTools access during the exam',
-  },
   blockRightClick: {
     name: 'Block Right-Click Menu',
     desc: 'Disables the context menu on the exam page',
+  },
+  blockAiApiBackends: {
+    name: 'Block AI API Backends',
+    desc: 'Block backend endpoints of OpenAI, Anthropic, Gemini, OpenRouter, and localhost AI servers',
+  },
+  blockAiStreaming: {
+    name: 'Block AI Streaming Responses',
+    desc: 'Intercepts and blocks live token-streaming AI chat responses (SSE streams)',
   },
 };
 
@@ -94,7 +98,6 @@ async function initAdminApp() {
 
   setupNav();
   setupDashboard();
-  setupExamSection();
   setupSecuritySection();
   setupWhitelistSection();
   setupAiBlockSection();
@@ -160,44 +163,6 @@ async function setupDashboard() {
   }
 }
 
-// ─── Exam Config ──────────────────────────────────────────────────────────────
-
-function setupExamSection() {
-  const input = document.getElementById('exam-url-input');
-  const preview = document.getElementById('url-preview');
-  const saveBtn = document.getElementById('save-exam-url-btn');
-
-  input.value = currentConfig.examUrl || '';
-  updatePreview(input.value);
-
-  input.addEventListener('input', () => updatePreview(input.value));
-
-  saveBtn.addEventListener('click', async () => {
-    const url = input.value.trim();
-    if (url && !isValidUrl(url)) {
-      showToast('Please enter a valid URL (include https://)', 'error');
-      return;
-    }
-    await window.sebAdmin.saveConfig({ examUrl: url });
-    currentConfig.examUrl = url;
-    updatePreview(url);
-    setupDashboard();
-    showToast('Exam URL saved!', 'success');
-  });
-}
-
-function updatePreview(url) {
-  const preview = document.getElementById('url-preview');
-  if (url && isValidUrl(url)) {
-    preview.innerHTML = `<span style="color:var(--accent)">${url}</span>`;
-  } else {
-    preview.innerHTML = `<span class="url-preview-placeholder">Enter an exam URL above to preview it here</span>`;
-  }
-}
-
-function isValidUrl(str) {
-  try { new URL(str); return true; } catch { return false; }
-}
 
 // ─── Security Settings ────────────────────────────────────────────────────────
 

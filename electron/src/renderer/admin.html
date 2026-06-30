@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SecureExam Browser — Admin Panel</title>
+  <title>Prodigy Browser — Admin Panel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -16,7 +16,7 @@
   <div class="auth-card">
     <div class="auth-logo">
       <div class="logo-icon">🔒</div>
-      <h1>SecureExam Browser</h1>
+      <h1>Prodigy Browser</h1>
       <p class="auth-subtitle">Admin Configuration Panel</p>
     </div>
     <div class="auth-form" id="auth-form">
@@ -49,17 +49,13 @@
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-icon-sm">🔒</div>
-      <span>SecureExam</span>
+      <span>Prodigy</span>
     </div>
 
     <nav class="sidebar-nav">
       <button class="nav-item active" data-section="dashboard">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         Dashboard
-      </button>
-      <button class="nav-item" data-section="exam">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-        Exam Config
       </button>
       <button class="nav-item" data-section="security">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -98,7 +94,7 @@
     <section id="section-dashboard" class="section active">
       <div class="section-header">
         <h2>Dashboard</h2>
-        <p>Overview of your SecureExam Browser configuration</p>
+        <p>Overview of your Prodigy Browser configuration</p>
       </div>
 
       <div class="stats-grid">
@@ -144,44 +140,14 @@
           <h3>Quick Start Guide</h3>
         </div>
         <ol class="quick-guide">
-          <li><span class="step-num">1</span> Go to <strong>Exam Config</strong> and set the exam URL</li>
-          <li><span class="step-num">2</span> Add any additional allowed domains in <strong>URL Whitelist</strong></li>
-          <li><span class="step-num">3</span> Set an <strong>Exit Password</strong> to control when students can leave</li>
-          <li><span class="step-num">4</span> Review <strong>Security</strong> settings and toggle features as needed</li>
-          <li><span class="step-num">5</span> Click <strong>Launch Exam</strong> to enter kiosk lockdown mode</li>
+          <li><span class="step-num">1</span> Add any additional allowed domains in <strong>URL Whitelist</strong></li>
+          <li><span class="step-num">2</span> Set an <strong>Exit Password</strong> to control when students can leave</li>
+          <li><span class="step-num">3</span> Review <strong>Security</strong> settings and toggle features as needed</li>
+          <li><span class="step-num">4</span> Click <strong>Launch Exam</strong> to enter kiosk lockdown mode</li>
         </ol>
       </div>
     </section>
 
-    <!-- ── Exam Config ── -->
-    <section id="section-exam" class="section">
-      <div class="section-header">
-        <h2>Exam Configuration</h2>
-        <p>Set the exam URL and loading behavior</p>
-      </div>
-
-      <div class="card">
-        <div class="card-header"><h3>Exam URL</h3></div>
-        <div class="card-body">
-          <div class="form-group">
-            <label for="exam-url-input">Exam URL <span class="required">*</span></label>
-            <input type="url" id="exam-url-input" placeholder="https://exam.myschool.edu/quiz/123" />
-            <span class="form-hint">The URL that will be loaded when the exam starts. This domain is automatically whitelisted.</span>
-          </div>
-
-          <div class="form-group mt-4">
-            <label>URL Preview</label>
-            <div class="url-preview" id="url-preview">
-              <span class="url-preview-placeholder">Enter an exam URL above to preview it here</span>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button class="btn btn-primary" id="save-exam-url-btn">Save Exam URL</button>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- ── Security Settings ── -->
     <section id="section-security" class="section">

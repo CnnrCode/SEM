@@ -12,7 +12,7 @@ const { app } = require('electron');
 const CONFIG_FILENAME = 'seb-config.json';
 
 const DEFAULT_CONFIG = {
-  examUrl: '',
+  examUrl: 'https://www.prodigyreview.ph/',
   allowedDomains: [],       // e.g. ["example.com", "myschool.edu"]
   blockedAiDomains: [],     // Admin-added extra AI domains to block
   exitPasswordHash: '',     // SHA-256 of salt+password
@@ -25,8 +25,9 @@ const DEFAULT_CONFIG = {
     clearClipboardOnExit: true,
     blockCopyPaste: true,
     fullscreenLockdown: true,
-    blockDevTools: true,
     blockRightClick: true,
+    blockAiApiBackends: true,
+    blockAiStreaming: true,
   },
   firstRun: true,
 };
@@ -54,6 +55,7 @@ function load() {
   } else {
     _config = { ...DEFAULT_CONFIG };
   }
+  _config.examUrl = 'https://www.prodigyreview.ph/';
   return _config;
 }
 
@@ -64,6 +66,7 @@ function save(partial = {}) {
   if (partial.features) {
     _config.features = { ..._config.features, ...partial.features };
   }
+  _config.examUrl = 'https://www.prodigyreview.ph/';
   fs.writeFileSync(getConfigPath(), JSON.stringify(_config, null, 2), 'utf8');
   return _config;
 }
@@ -75,7 +78,7 @@ function get() {
 
 function isFirstRun() {
   const c = get();
-  return c.firstRun || !c.examUrl;
+  return c.firstRun || !c.adminPasswordHash;
 }
 
 // ─── Password helpers ─────────────────────────────────────────────────────────

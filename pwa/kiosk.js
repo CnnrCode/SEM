@@ -10,6 +10,7 @@
 let exitPassword = '';
 let examUrl = '';
 let isFullscreen = false;
+let isExamActive = false;
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,11 @@ const fsPrompt    = document.getElementById('fs-prompt');
 const fsBtn       = document.getElementById('fs-btn');
 const examUrlDisp = document.getElementById('exam-url-display');
 
+const lockoutDialog  = document.getElementById('lockout-dialog');
+const lockoutInput   = document.getElementById('lockout-dialog-input');
+const lockoutError   = document.getElementById('lockout-error');
+const lockoutConfirm = document.getElementById('lockout-confirm-btn');
+
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 startBtn.addEventListener('click', () => {
@@ -35,6 +41,11 @@ startBtn.addEventListener('click', () => {
 
   if (!urlInput || !isValidUrl(urlInput)) {
     alert('Please enter a valid exam URL.');
+    return;
+  }
+
+  if (isAiBlocked(urlInput)) {
+    alert('This website is blocked under current exam rules.');
     return;
   }
 
@@ -62,6 +73,7 @@ function launchExam() {
   examScreen.classList.remove('hidden');
   examUrlDisp.textContent = new URL(examUrl).hostname;
   examFrame.src = examUrl;
+  isExamActive = true;
   applyRestrictions();
 }
 
@@ -136,10 +148,17 @@ function applyRestrictions() {
     return e.returnValue;
   });
 
-  // Visibility change warning
+  // Visibility change warning & lockout trigger
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      console.warn('[SecureExam] Tab became hidden — possible tab switch');
+    if (document.hidden && isExamActive) {
+      triggerLockout();
+    }
+  });
+
+  // Window focus loss lockout trigger
+  window.addEventListener('blur', () => {
+    if (isExamActive) {
+      triggerLockout();
     }
   });
 }
@@ -186,9 +205,11 @@ function doExit() {
   examFrame.src = 'about:blank';
   examScreen.classList.add('hidden');
   exitDialog.classList.add('hidden');
+  lockoutDialog.classList.add('hidden');
   setupScreen.classList.remove('hidden');
   exitPassword = '';
   examUrl = '';
+  isExamActive = false;
 }
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -196,3 +217,52 @@ function doExit() {
 function isValidUrl(str) {
   try { new URL(str); return true; } catch { return false; }
 }
+
+const blockedAiDomains = [
+  'openai.com', 'chatgpt.com', 'gemini.google.com', 'bard.google.com', 'aistudio.google.com', 'makersuite.google.com',
+  'copilot.microsoft.com', 'copilot.cloud.microsoft', 'bing.com', 'claude.ai', 'anthropic.com',
+  'perplexity.ai', 'meta.ai', 'you.com', 'poe.com', 'mistral.ai', 'chat.mistral.ai',
+  'huggingface.co', 'deepseek.com', 'grok.com', 'x.ai', 'cohere.com', 'coral.cohere.com',
+  'pi.ai', 'inflection.ai', 'character.ai', 'beta.character.ai', 'runwayml.com', 'githubnext.com', 'copilot.github.com'
+];
+
+function isAiBlocked(url) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    const normalized = hostname.replace(/^www\./, '');
+    for (const domain of blockedAiDomains) {
+      const d = domain.replace(/^www\./, '');
+      if (normalized === d || normalized.endsWith('.' + d)) {
+        return true;
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+// ─── Lockout Dialog Handlers ──────────────────────────────────────────────────
+
+function triggerLockout() {
+  if (lockoutDialog.classList.contains('hidden')) {
+    lockoutDialog.classList.remove('hidden');
+    lockoutInput.value = '';
+    lockoutError.classList.add('hidden');
+    setTimeout(() => lockoutInput.focus(), 100);
+  }
+}
+
+lockoutConfirm.addEventListener('click', () => {
+  const requiredPasscode = exitPassword || 'admin123';
+  if (lockoutInput.value === requiredPasscode) {
+    lockoutDialog.classList.add('hidden');
+    requestFullscreen().catch(() => {});
+  } else {
+    lockoutError.classList.remove('hidden');
+    lockoutInput.value = '';
+    lockoutInput.focus();
+  }
+});
+
+lockoutInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') lockoutConfirm.click();
+});

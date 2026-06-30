@@ -5,13 +5,13 @@
             app:key="exam_url"
             app:title="@string/pref_exam_url_title"
             app:useSimpleSummaryProvider="true"
-            app:defaultValue="https://www.google.com" />
+            app:defaultValue="https://www.prodigyreview.ph/" />
 
         <EditTextPreference
-            app:key="url_whitelist"
+            app:key="url_blacklist"
             app:title="@string/pref_whitelist_title"
             app:summary="@string/pref_whitelist_summary"
-            app:defaultValue="google.com,wikipedia.org" />
+            app:defaultValue="" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_category_security">

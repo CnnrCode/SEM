@@ -2,66 +2,417 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_Drawing"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark"
+    android:background="#0a0e1a"
     tools:context=".MainActivity">
 
-    <!-- The Exam WebView -->
-    <android.webkit.WebView
-        android:id="@+id/webView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+    <!-- ══ BROWSER HEADER ══════════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/browserHeader"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="#13182b"
+        android:orientation="vertical"
+        android:elevation="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- ── Tabs Bar ──────────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/tabsBar"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:orientation="horizontal"
+            android:gravity="bottom"
+            android:paddingStart="8dp"
+            android:paddingEnd="4dp"
+            android:paddingTop="4dp">
+
+            <HorizontalScrollView
+                android:id="@+id/tabScrollView"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scrollbars="none"
+                android:overScrollMode="never">
+
+                <LinearLayout
+                    android:id="@+id/tabContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="bottom"
+                    android:paddingBottom="0dp" />
+
+            </HorizontalScrollView>
+
+            <!-- New Tab + button -->
+            <ImageButton
+                android:id="@+id/btnNewTab"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginBottom="2dp"
+                android:background="@drawable/nav_btn_bg"
+                android:contentDescription="New Tab"
+                android:padding="7dp"
+                android:src="@android:drawable/ic_input_add"
+                android:tint="#94a3b8" />
+
+        </LinearLayout>
+
+        <!-- ── Control Bar ────────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/controlBar"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="#1e293b"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <!-- Nav Buttons -->
+            <LinearLayout
+                android:id="@+id/navButtons"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageButton
+                    android:id="@+id/btnBack"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/nav_btn_bg"
+                    android:contentDescription="Back"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_nav_back"
+                    android:tint="#94a3b8" />
+
+                <ImageButton
+                    android:id="@+id/btnForward"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/nav_btn_bg"
+                    android:contentDescription="Forward"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_nav_forward"
+                    android:tint="#94a3b8" />
+
+                <ImageButton
+                    android:id="@+id/btnReload"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/nav_btn_bg"
+                    android:contentDescription="Reload"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_nav_reload"
+                    android:tint="#94a3b8" />
+
+                <ImageButton
+                    android:id="@+id/btnHome"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/nav_btn_bg"
+                    android:contentDescription="Exam Home"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_nav_home"
+                    android:tint="#94a3b8" />
+
+            </LinearLayout>
+
+            <!-- Address Bar -->
+            <LinearLayout
+                android:id="@+id/addressContainer"
+                android:layout_width="0dp"
+                android:layout_height="34dp"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/address_bar_bg"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
+
+                <ImageView
+                    android:id="@+id/iconLock"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginEnd="8dp"
+                    android:contentDescription="Secure"
+                    android:src="@drawable/ic_lock"
+                    android:tint="#10b981" />
+
+                <EditText
+                    android:id="@+id/tvUrl"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:ellipsize="end"
+                    android:hint="Search or enter web address"
+                    android:textColorHint="#475569"
+                    android:imeOptions="actionGo"
+                    android:inputType="textUri"
+                    android:maxLines="1"
+                    android:selectAllOnFocus="true"
+                    android:text="www.prodigyreview.ph"
+                    android:textColor="#f8fafc"
+                    android:textSize="13sp"
+                    android:gravity="center_vertical"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp" />
+
+                <ProgressBar
+                    android:id="@+id/spinnerLoading"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="6dp"
+                    android:indeterminateTint="#4f8ef7"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Right Actions: Shield badge + Exit button -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/aiShieldBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/shield_badge_bg"
+                    android:drawablePadding="4dp"
+                    android:gravity="center_vertical"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:text="🛡️ AI Blocked"
+                    android:textColor="#10b981"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnExitSession"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:backgroundTint="#ef4444"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:text="Exit Session"
+                    android:textColor="#ffffff"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ── Page Load Progress Bar ─────────────────────────────────── -->
+        <ProgressBar
+            android:id="@+id/pageProgressBar"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#4f8ef7"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- ══ WEBVIEW CONTAINER ══════════════════════════════════════════════ -->
+    <FrameLayout
+        android:id="@+id/contentArea"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/browserHeader">
 
-    <!-- Access Denied / Error Block Overlay -->
-    <LinearLayout
-        android:id="@+id/blockedOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#E60F0F13"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="24dp"
+        <!-- WebViews added programmatically -->
+        <FrameLayout
+            android:id="@+id/webViewContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0a0e1a" />
+
+        <!-- ── AI Blocked Overlay ─────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/blockedOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#F00a0e1a"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:visibility="gone"
+            tools:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🛡️"
+                android:textSize="56sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="ACCESS BLOCKED"
+                android:textColor="#f8fafc"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
+
+            <TextView
+                android:id="@+id/blockedReason"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:text="This website is blocked under current exam rules."
+                android:textColor="#94a3b8"
+                android:textSize="14sp"
+                android:lineSpacingMultiplier="1.5" />
+
+            <Button
+                android:id="@+id/btnBackToExam"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:backgroundTint="#4f8ef7"
+                android:paddingStart="28dp"
+                android:paddingEnd="28dp"
+                android:text="Return to Exam"
+                android:textColor="#ffffff"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- ── Toast Notification Stack ──────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/toastContainer"
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="12dp"
+            android:orientation="vertical" />
+
+    </FrameLayout>
+
+    <!-- ══ EXIT VERIFICATION MODAL (full-screen overlay) ════════════════ -->
+    <FrameLayout
+        android:id="@+id/exitModal"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#CC0a0e1a"
+        android:elevation="32dp"
         android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         tools:visibility="gone">
 
-        <ImageView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:src="@android:drawable/ic_dialog_alert"
-            app:tint="@color/accent_red" />
-
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="340dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="ACCESS BLOCKED"
-            android:textColor="@color/text_main"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:layout_gravity="center"
+            android:background="@drawable/modal_bg"
+            android:elevation="16dp"
+            android:orientation="vertical"
+            android:padding="28dp">
 
-        <TextView
-            android:id="@+id/blockedReason"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:gravity="center"
-            android:text="This webpage violates active exam rules and was intercepted."
-            android:textColor="@color/text_muted"
-            android:textSize="16sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Exit Exam Session"
+                android:textColor="#f8fafc"
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/btnBackToExam"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:backgroundTint="@color/primary_indigo"
-            android:text="Return to Whitelisted Exam URL"
-            android:textColor="@color/white" />
-    </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="20dp"
+                android:gravity="center"
+                android:text="Enter the exit password to unlock the device and close the browser."
+                android:textColor="#94a3b8"
+                android:textSize="14sp"
+                android:lineSpacingMultiplier="1.4" />
+
+            <EditText
+                android:id="@+id/exitPasswordInput"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/input_bg"
+                android:hint="Password"
+                android:inputType="textPassword"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="#f8fafc"
+                android:textColorHint="#4a5568"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/exitErrorMsg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Incorrect exit password. Access denied."
+                android:textColor="#ef4444"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/exitCancelBtn"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:backgroundTint="#1e293b"
+                    android:text="Cancel"
+                    android:textColor="#94a3b8"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/exitSubmitBtn"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="#4f8ef7"
+                    android:text="Exit Session"
+                    android:textColor="#ffffff"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

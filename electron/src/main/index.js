@@ -81,6 +81,8 @@ app.on('before-quit', () => {
   }
   lockdown.unregisterAll();
   screenGuard.stopSnippingWatchdog();
+  screenGuard.stopAiProcessWatchdog();
+  screenGuard.stopClipboardWatchdog();
   auditLog.log('SESSION_END');
 });
 
@@ -102,15 +104,23 @@ function launchExam() {
   examMode = true;
 
   const isFullscreen = cfg.features.fullscreenLockdown !== false;
+  const shouldBlockShortcuts = cfg.features.blockKeyboardShortcuts !== false;
 
   examWindow = new BrowserWindow({
     fullscreen: isFullscreen,
     kiosk: isFullscreen,
-    alwaysOnTop: isFullscreen,
-    frame: !isFullscreen,
+    alwaysOnTop: isFullscreen || shouldBlockShortcuts,
+    // Modern frameless window style (hides standard white OS title bar)
+    titleBarStyle: isFullscreen ? 'default' : 'hidden',
+    titleBarOverlay: isFullscreen ? false : {
+      color: '#13182b',
+      symbolColor: '#f8fafc',
+      height: 38
+    },
+    frame: false,
     resizable: !isFullscreen,
-    movable: !isFullscreen,
-    minimizable: !isFullscreen,
+    movable: true, // Allow moving frameless window via webkit-app-region drag
+    minimizable: false,
     closable: !isFullscreen,
     skipTaskbar: isFullscreen,
     autoHideMenuBar: true,
@@ -118,6 +128,7 @@ function launchExam() {
     height: isFullscreen ? undefined : 800,
     center: !isFullscreen,
     backgroundColor: '#0a0e1a',
+    icon: path.join(__dirname, '../renderer/prodigy.png'),
     webPreferences: {
       preload: path.join(__dirname, '../preload/browserPreload.js'),
       webviewTag: true,
@@ -129,14 +140,28 @@ function launchExam() {
     },
   });
 
+  // Apply highest always-on-top level when shortcuts blocking is enabled in windowed mode
+  if (!isFullscreen && shouldBlockShortcuts) {
+    examWindow.setAlwaysOnTop(true, 'screen-saver');
+  }
+
   // Attach URL filter
   urlFilter.attach(examWindow.webContents);
 
-  // Screen protection
+  // Set up keyboard shortcut input barrier
+  lockdown.setupInputBarrier(examWindow);
+
+  // Screen protection & AI process watchdog
   screenGuard.init(examWindow);
   if (cfg.features.blockScreenCapture) {
     screenGuard.enableScreenProtection();
     screenGuard.startSnippingWatchdog();
+  }
+  if (cfg.features.blockAiApiBackends !== false) {
+    screenGuard.startAiProcessWatchdog();
+  }
+  if (cfg.features.blockCopyPaste !== false) {
+    screenGuard.startClipboardWatchdog();
   }
 
   // Clear clipboard on start
@@ -145,8 +170,17 @@ function launchExam() {
   }
 
   // Block shortcuts
-  if (cfg.features.blockKeyboardShortcuts) {
+  if (shouldBlockShortcuts) {
     lockdown.registerAll();
+    // Register Alt+Tab at globalShortcut level so Windows sees it
+    try {
+      globalShortcut.register('Alt+Tab', () => {
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Alt+Tab' });
+        if (examWindow && !examWindow.isDestroyed()) examWindow.focus();
+      });
+    } catch (e) {
+      console.warn('[Lockdown] Could not register Alt+Tab globalShortcut:', e.message);
+    }
   }
 
   // Load browser wrapper UI
@@ -171,7 +205,12 @@ function launchExam() {
   });
 
   examWindow.on('blur', () => {
-    if (examMode && examWindow && isFullscreen) {
+    if (!examMode || !examWindow || examWindow.isDestroyed()) return;
+    const latestCfg = config.get();
+    const blockShortcuts = latestCfg.features.blockKeyboardShortcuts !== false;
+    const fullscreen = latestCfg.features.fullscreenLockdown !== false;
+    if (blockShortcuts || fullscreen) {
+      // Immediately reclaim focus — no delay so the task switcher has no time to appear
       examWindow.focus();
     }
   });
@@ -190,6 +229,10 @@ function openAdminPanel(message = null) {
   // Pause lockdown if in exam mode
   if (examMode) {
     lockdown.unregisterAll();
+    screenGuard.disableScreenProtection();
+    screenGuard.stopSnippingWatchdog();
+    screenGuard.stopAiProcessWatchdog();
+    screenGuard.stopClipboardWatchdog();
     if (examWindow) examWindow.minimize();
   }
 
@@ -204,6 +247,7 @@ function openAdminPanel(message = null) {
     backgroundColor: '#0a0e1a',
     titleBarStyle: 'hiddenInset',
     autoHideMenuBar: true,
+    icon: path.join(__dirname, '../renderer/prodigy.png'),
     webPreferences: {
       preload: path.join(__dirname, '../preload/adminPreload.js'),
       nodeIntegration: false,
@@ -246,6 +290,17 @@ function openAdminPanel(message = null) {
       if (cfg.features.fullscreenLockdown !== false) {
         examWindow.setKiosk(true);
         examWindow.setFullScreen(true);
+      }
+      // Restart watchdogs
+      if (cfg.features.blockScreenCapture) {
+        screenGuard.enableScreenProtection();
+        screenGuard.startSnippingWatchdog();
+      }
+      if (cfg.features.blockAiApiBackends !== false) {
+        screenGuard.startAiProcessWatchdog();
+      }
+      if (cfg.features.blockCopyPaste !== false) {
+        screenGuard.startClipboardWatchdog();
       }
     }
   });
@@ -343,6 +398,12 @@ ipcMain.handle('browser:getPreloadPath', () => {
   return path.join(__dirname, '../preload/examPreload.js');
 });
 
+// Check if user input is blocked (contains AI)
+ipcMain.handle('browser:checkBlocked', (_, text) => {
+  return urlFilter.isInputBlocked(text);
+});
+
+
 // Version
 ipcMain.handle('admin:getVersion', () => app.getVersion());
 
@@ -366,20 +427,15 @@ ipcMain.handle('admin:saveBlockedAiDomains', (_, domains) => {
   return { success: true };
 });
 
-// Quit with exit password verification
-ipcMain.handle('admin:quit', (_, password) => {
-  if (config.verifyExitPassword(password)) {
-    auditLog.log('SESSION_EXIT', { authorized: true });
-    examMode = false;
-    if (examWindow && !examWindow.isDestroyed()) {
-      examWindow.destroy();
-    }
-    app.quit();
-    return { success: true };
-  } else {
-    auditLog.log('EXIT_DENIED', { reason: 'wrong_password' });
-    return { success: false, error: 'Incorrect exit password.' };
+// Quit with confirmation only (no exit password check needed)
+ipcMain.handle('admin:quit', () => {
+  auditLog.log('SESSION_EXIT', { authorized: true });
+  examMode = false;
+  if (examWindow && !examWindow.isDestroyed()) {
+    examWindow.destroy();
   }
+  app.quit();
+  return { success: true };
 });
 
 // Log events from renderer preloads
@@ -387,9 +443,23 @@ ipcMain.on('exam-event', (_, { type, ...data }) => {
   auditLog.log(type, data);
 });
 
-// Attach URL filter to any webviews that get created
+// Attach URL filter to any webviews that get created, and push config into them
 app.on('web-contents-created', (event, contents) => {
   if (contents.getType() === 'webview') {
     urlFilter.attach(contents);
+
+    // Push config directly from the main process on every page load.
+    // This is the only IPC path guaranteed to reach ipcRenderer.on() inside a
+    // sandboxed webview preload regardless of contextIsolation settings.
+    contents.on('dom-ready', () => {
+      const cfg = config.get();
+      // Strip sensitive fields before sending
+      const safeCfg = { ...cfg };
+      delete safeCfg.exitPasswordHash;
+      delete safeCfg.exitPasswordSalt;
+      delete safeCfg.adminPasswordHash;
+      delete safeCfg.adminPasswordSalt;
+      contents.send('seb:config', safeCfg);
+    });
   }
 });

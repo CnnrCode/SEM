@@ -17,8 +17,8 @@
     <string name="pref_exit_pwd_summary">Password required to exit the browser. Default: "admin123"</string>
     <string name="pref_admin_pwd_title">Admin Settings Password</string>
     <string name="pref_admin_pwd_summary">Password to access these settings. Default: "admin123"</string>
-    <string name="pref_whitelist_title">URL Whitelist</string>
-    <string name="pref_whitelist_summary">Comma-separated list of allowed domains (e.g. "google.com, wikipedia.org").</string>
+    <string name="pref_whitelist_title">Extra Blocked Domains</string>
+    <string name="pref_whitelist_summary">Comma-separated list of additional domains to block (e.g. "facebook.com, youtube.com").</string>
     
     <string name="pref_category_general">General Settings</string>
     <string name="pref_category_security">Security Settings</string>

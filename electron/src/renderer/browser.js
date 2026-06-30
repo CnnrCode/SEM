@@ -22,16 +22,27 @@ const addressInput = document.getElementById('address-input');
 const loadingSpinner = document.getElementById('loading-spinner');
 const chromeExitBtn = document.getElementById('chrome-exit-btn');
 const exitModal = document.getElementById('exit-modal');
-const exitPasswordInput = document.getElementById('exit-password-input');
 const exitSubmitBtn = document.getElementById('exit-submit-btn');
 const exitCancelBtn = document.getElementById('exit-cancel-btn');
-const exitErrorMsg = document.getElementById('exit-error-msg');
 const webviewsContainer = document.getElementById('webview-views');
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load config & preload paths
   config = await window.sebBrowser.getConfig();
   examPreloadPath = await window.sebBrowser.getExamPreloadPath();
+
+  // Adjust tabs-bar padding for native title bar overlays (frameless window controls)
+  const platform = navigator.platform.toLowerCase();
+  const isWin = platform.includes('win');
+  const isMac = platform.includes('mac');
+  const tabsBar = document.getElementById('tabs-bar');
+  if (tabsBar) {
+    if (isWin) {
+      tabsBar.style.paddingRight = '140px';
+    } else if (isMac) {
+      tabsBar.style.paddingLeft = '80px';
+    }
+  }
 
   // Create initial tab (Exam Tab - cannot be closed)
   const initialUrl = config.examUrl || 'about:blank';
@@ -44,10 +55,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   navRefreshBtn.addEventListener('click', navigateRefresh);
   navHomeBtn.addEventListener('click', navigateHome);
 
-  addressInput.addEventListener('keydown', (e) => {
+  addressInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
-      let url = addressInput.value.trim();
-      if (!url) return;
+      const rawInput = addressInput.value.trim();
+      if (!rawInput) return;
+
+      // Check if input is blocked
+      const isBlocked = await window.sebBrowser.checkBlocked(rawInput);
+      if (isBlocked) {
+        // Log block event
+        window.sebBrowser.logEvent('AI_URL_BLOCKED', { url: rawInput });
+
+        // Show block toast
+        showBlockedToast(rawInput);
+
+        // Restore previous URL
+        const activeTab = tabs.find(t => t.id === activeTabId);
+        if (activeTab) {
+          addressInput.value = activeTab.url || '';
+        }
+        addressInput.blur();
+        return;
+      }
+
+      let url = rawInput;
       if (!/^https?:\/\//i.test(url)) {
         // If it looks like a domain, prepend https://. Else search on Google.
         if (url.includes('.') && !url.includes(' ')) {
@@ -65,10 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   chromeExitBtn.addEventListener('click', showExitPrompt);
   exitCancelBtn.addEventListener('click', hideExitPrompt);
   exitSubmitBtn.addEventListener('click', attemptExit);
-  exitPasswordInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') attemptExit();
-    if (e.key === 'Escape') hideExitPrompt();
-  });
+
 
   // Global Keyboard shortcuts in the window
   window.addEventListener('keydown', (e) => {
@@ -99,6 +127,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Handle Tab Opening from setWindowOpenHandler
   window.sebBrowser.onOpenTab((url) => {
     createTab(url, true);
+  });
+
+  // Handle Blocked Toast notification
+  window.sebBrowser.onShowBlockedToast(({ url }) => {
+    showBlockedToast(url);
   });
 });
 
@@ -330,19 +363,7 @@ function navigateActiveTabTo(url) {
 // ─── Exit Dialog ────────────────────────────────────────────────────────────
 
 async function showExitPrompt() {
-  const hasPassword = await window.sebBrowser.hasExitPassword();
-  if (!hasPassword) {
-    // If no password set, exit immediately
-    await window.sebBrowser.quit('');
-    return;
-  }
-
-  exitPasswordInput.value = '';
-  exitErrorMsg.classList.add('hidden');
   exitModal.classList.remove('hidden');
-  setTimeout(() => {
-    exitPasswordInput.focus();
-  }, 100);
 }
 
 function hideExitPrompt() {
@@ -350,21 +371,54 @@ function hideExitPrompt() {
 }
 
 async function attemptExit() {
-  const password = exitPasswordInput.value;
-  exitErrorMsg.classList.add('hidden');
-  
   try {
-    const result = await window.sebBrowser.quit(password);
-    if (result && result.success) {
-      // App will close
-    } else {
-      exitErrorMsg.classList.remove('hidden');
-      exitPasswordInput.value = '';
-      exitPasswordInput.focus();
-    }
+    await window.sebBrowser.quit('');
   } catch (err) {
     console.error('Exit call failed', err);
-    exitErrorMsg.textContent = 'Connection error occurred.';
-    exitErrorMsg.classList.remove('hidden');
   }
+}
+
+// ─── Toast Notifications ─────────────────────────────────────────────────────
+
+function showBlockedToast(url) {
+  showToast(
+    `You cannot use other AI tools. Prodigy Browser has a built-in AI tutor that provides guidance without giving direct answers.`
+  );
+}
+
+function showToast(message) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  
+  toast.innerHTML = `
+    <div class="toast-header">
+      <span class="toast-title">
+        <span>🛡️</span> AI Blocking Shield
+      </span>
+      <button class="toast-close">✕</button>
+    </div>
+    <div class="toast-body">${message}</div>
+  `;
+
+  container.appendChild(toast);
+
+  // Trigger slide-in
+  setTimeout(() => {
+    toast.classList.add('show');
+  }, 10);
+
+  const dismiss = () => {
+    toast.classList.remove('show');
+    setTimeout(() => {
+      toast.remove();
+    }, 350);
+  };
+
+  toast.querySelector('.toast-close').addEventListener('click', dismiss);
+
+  // Auto-dismiss after 6 seconds
+  setTimeout(dismiss, 6000);
 }

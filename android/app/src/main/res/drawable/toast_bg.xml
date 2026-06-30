@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Toast card: dark blur-style bg with red left border, matching PC browser toast -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Red left border -->
+    <item android:left="0dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#ef4444" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <!-- Dark card body, offset to show border -->
+    <item android:left="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#F213182b" />
+            <corners
+                android:topRightRadius="8dp"
+                android:bottomRightRadius="8dp"
+                android:topLeftRadius="4dp"
+                android:bottomLeftRadius="4dp" />
+            <stroke
+                android:width="1dp"
+                android:color="#3Aef4444" />
+        </shape>
+    </item>
+</layer-list>

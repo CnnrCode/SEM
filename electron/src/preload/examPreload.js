@@ -1,17 +1,23 @@
 /**
  * examPreload.js — Injected into exam pages via Electron contextBridge
  * Blocks: copy, cut, paste, contextmenu, drag, text selection, devtools shortcuts
+ *
+ * Config is delivered via two mechanisms (whichever fires first wins):
+ *   1. browser.js pushes 'seb:config' on webview dom-ready  (primary, reliable)
+ *   2. ipcRenderer.invoke fallback in case the push is missed
  */
 
 const { ipcRenderer } = require('electron');
 
 let cfg = null;
+let configApplied = false;
 
-// Async load config to respect feature flags
-ipcRenderer.invoke('admin:getConfig').then(c => {
-  cfg = c;
-  
-  // Apply text selection restriction if blockCopyPaste is active
+function applyConfig(receivedConfig) {
+  if (configApplied) return; // only apply once
+  configApplied = true;
+  cfg = receivedConfig;
+
+  // Apply text-selection restriction when blockCopyPaste is active
   if (!cfg || !cfg.features || cfg.features.blockCopyPaste !== false) {
     const textSelectStyle = document.createElement('style');
     textSelectStyle.textContent = `
@@ -26,8 +32,18 @@ ipcRenderer.invoke('admin:getConfig').then(c => {
     `;
     document.head.appendChild(textSelectStyle);
   }
+}
+
+// Primary: browser.js pushes config here on webview dom-ready
+ipcRenderer.on('seb:config', (_, receivedConfig) => {
+  applyConfig(receivedConfig);
+});
+
+// Fallback: pull from main process in case the push was missed
+ipcRenderer.invoke('admin:getConfig').then(c => {
+  applyConfig(c);
 }).catch(err => {
-  console.error('Failed to load config in preload', err);
+  console.error('[examPreload] Failed to load config via IPC fallback:', err);
 });
 
 // ─── Block copy/cut/paste ─────────────────────────────────────────────────────
@@ -167,9 +183,10 @@ style.textContent = `
 document.head.appendChild(style);
 
 // ─── Floating close button injection ──────────────────────────────────────────
-
+// Initialize on DOM load
 window.addEventListener('DOMContentLoaded', () => {
   _injectFloatingCloseButton();
+  _setupGoogleAiShield();
 });
 
 function _injectFloatingCloseButton() {
@@ -181,18 +198,8 @@ function _injectFloatingCloseButton() {
   btn.innerHTML = '✕';
   btn.title = 'Exit Exam';
   
-  btn.addEventListener('click', async () => {
-    try {
-      const hasPassword = await ipcRenderer.invoke('exam:hasExitPassword');
-      if (hasPassword) {
-        _showExitDialog();
-      } else {
-        await ipcRenderer.invoke('admin:quit', '');
-      }
-    } catch (err) {
-      console.error('Failed to query exit password status, falling back to dialog:', err);
-      _showExitDialog();
-    }
+  btn.addEventListener('click', () => {
+    _showExitDialog();
   });
   
   document.body.appendChild(btn);
@@ -217,23 +224,8 @@ function _showExitDialog() {
     ">
       <h3 style="color: #f3f4f6; margin: 0 0 12px; font-size: 20px; font-weight: 600;">Exit Exam Session</h3>
       <p style="color: #9ca3af; margin: 0 0 24px; font-size: 14px; line-height: 1.5; text-align: center;">
-        Enter the exit password to unlock the device and close the browser.
+        Are you sure you want to exit the exam session? Unsaved changes may be lost.
       </p>
-      
-      <input type="password" id="__seb_exit_password_input" placeholder="Password" style="
-        width: 100%; background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px; padding: 12px 16px; color: #ffffff;
-        font-size: 15px; margin-bottom: 12px; box-sizing: border-box;
-        outline: none; transition: border-color 0.2s;
-      " />
-      
-      <div id="__seb_exit_error_msg" style="
-        color: #ef4444; font-size: 13px; text-align: left;
-        margin: -4px 0 16px 4px; display: none;
-      ">
-        Incorrect exit password. Access denied.
-      </div>
       
       <div style="display: flex; gap: 12px; margin-top: 16px; width: 100%;">
         <button id="__seb_exit_cancel_btn" class="__seb_exit_btn">Cancel</button>
@@ -246,95 +238,99 @@ function _showExitDialog() {
   
   const cancelBtn = dialog.querySelector('#__seb_exit_cancel_btn');
   const submitBtn = dialog.querySelector('#__seb_exit_submit_btn');
-  const pwdInput = dialog.querySelector('#__seb_exit_password_input');
-  const errorMsg = dialog.querySelector('#__seb_exit_error_msg');
-  
-  pwdInput.focus();
   
   cancelBtn.addEventListener('click', () => {
     dialog.remove();
   });
   
   const attemptExit = async () => {
-    const password = pwdInput.value;
-    errorMsg.style.display = 'none';
-    
     try {
-      const response = await ipcRenderer.invoke('admin:quit', password);
-      if (response && response.success) {
-        // App will exit
-      } else {
-        errorMsg.style.display = 'block';
-        pwdInput.value = '';
-        pwdInput.focus();
-      }
+      await ipcRenderer.invoke('admin:quit');
     } catch (err) {
       console.error('Exit failed:', err);
-      errorMsg.textContent = 'Connection error.';
-      errorMsg.style.display = 'block';
     }
   };
   
   submitBtn.addEventListener('click', attemptExit);
   
-  pwdInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      attemptExit();
-    }
+  window.addEventListener('keydown', function escHandler(e) {
     if (e.key === 'Escape') {
       dialog.remove();
+      window.removeEventListener('keydown', escHandler);
     }
   });
 }
 
+// Blocked overlay removed in favor of chrome-level custom Toast notifications.
 
-// ─── Listen for url-blocked message and show overlay ─────────────────────────
+function _setupGoogleAiShield() {
+  const host = window.location.hostname;
+  if (!host.includes('google.')) return;
 
-ipcRenderer.on('url-blocked', (_, { url }) => {
-  _showBlockedOverlay(url);
-});
+  const injectShield = () => {
+    // 1. Inject CSS to hide all known AI Overview containers & SGE widgets
+    const styleId = '__seb_google_ai_shield_css';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.innerHTML = `
+        /* Hide SGE/AI Overview/Gemini widgets */
+        div[data-sge-type],
+        div[data-sge],
+        div.sge-root,
+        div.SGE,
+        #sge-root,
+        #sge-results,
+        div[data-md*="sge"],
+        div[class*="sge_"],
+        div[class*="SGE_"],
+        div[data-share-url*="gemini"],
+        div[class*="Sge"],
+        /* Hide generative search prompt areas */
+        div[class*="gemini-"],
+        /* Navigation tabs: hide AI Mode tab */
+        a[href*="udm=14"] {
+          display: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
 
-function _showBlockedOverlay(url) {
-  // Remove existing overlay
-  const existing = document.getElementById('__seb_blocked_overlay');
-  if (existing) existing.remove();
+    // 2. Hide "AI Mode" navigation elements by text content matching
+    const items = document.querySelectorAll('a, div, span, button');
+    for (const el of items) {
+      if (el.textContent && el.textContent.trim().toLowerCase() === 'ai mode') {
+        const parent = el.closest('div[role="listitem"]') || el.closest('a') || el;
+        if (parent && parent.style.display !== 'none') {
+          parent.style.setProperty('display', 'none', 'important');
+        }
+      }
+    }
 
-  const overlay = document.createElement('div');
-  overlay.id = '__seb_blocked_overlay';
-  overlay.innerHTML = `
-    <div style="
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(10,14,26,0.95);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 2147483647; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    ">
-      <div style="
-        background: #1a1f35; border: 1px solid #ef4444;
-        border-radius: 16px; padding: 40px 48px; text-align: center;
-        max-width: 480px;
-      ">
-        <div style="font-size: 48px; margin-bottom: 16px;">🚫</div>
-        <h2 style="color: #ef4444; font-size: 22px; margin: 0 0 12px;">Access Blocked</h2>
-        <p style="color: #94a3b8; font-size: 14px; margin: 0 0 8px;">
-          This URL is not allowed during the exam session.
-        </p>
-        <code style="
-          display: block; background: #0f1322; color: #f87171;
-          padding: 8px 12px; border-radius: 8px; font-size: 12px;
-          word-break: break-all; margin: 12px 0 24px;
-        ">${url}</code>
-        <button onclick="document.getElementById('__seb_blocked_overlay').remove()" style="
-          background: #4f8ef7; color: white; border: none;
-          padding: 10px 28px; border-radius: 8px; cursor: pointer;
-          font-size: 14px; font-weight: 600;
-        ">Back to Exam</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
+    // 3. Hide bottom SGE chat input box if present
+    const textareas = document.querySelectorAll('textarea, input');
+    for (const el of textareas) {
+      const placeholder = el.placeholder || '';
+      if (placeholder.includes('Ask anything') || placeholder.includes('Converse')) {
+        const parent = el.closest('div');
+        if (parent && parent.style.display !== 'none') {
+          parent.style.setProperty('display', 'none', 'important');
+        }
+      }
+    }
+  };
 
-  // Auto-dismiss after 5 seconds
-  setTimeout(() => {
-    if (overlay.parentNode) overlay.remove();
-  }, 5000);
+  // Run immediately on script load, on DOMContentLoaded, and observe DOM changes
+  injectShield();
+  window.addEventListener('DOMContentLoaded', injectShield);
+
+  // Setup MutationObserver to continuously strip AI elements (for Google Search SPAs)
+  const observer = new MutationObserver(() => {
+    injectShield();
+  });
+  
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  });
 }

@@ -6,7 +6,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen" />
+  <meta name="apple-mobile-web-app-title" content="SecureExam" />
+  <meta name="theme-color" content="#080c18" />
   <title>SecureExam — Kiosk Mode</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-512.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -74,6 +78,20 @@
   </div>
 </div>
 
+<!-- ─── Lockout Dialog ─────────────────────────────────────────────────────── -->
+<div id="lockout-dialog" class="dialog-overlay hidden" style="background: rgba(8, 12, 24, 0.98); z-index: 10000;">
+  <div class="dialog" style="border-top: 4px solid var(--danger);">
+    <div style="font-size: 48px; margin-bottom: 12px; animation: float 3s ease-in-out infinite;">🚨</div>
+    <h2 style="color: var(--danger);">Exam Session Suspended</h2>
+    <p>You exited the exam screen or switched apps. This session is locked. A teacher must enter the passcode to resume your exam.</p>
+    <input type="password" id="lockout-dialog-input" placeholder="Admin passcode" autocomplete="off" />
+    <div id="lockout-error" class="dialog-error hidden">Incorrect passcode. Please try again.</div>
+    <div class="dialog-actions">
+      <button id="lockout-confirm-btn" class="btn-danger" style="width: 100%;">Unlock Session</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── Fullscreen prompt ──────────────────────────────────────────────────── -->
 <div id="fs-prompt" class="fs-prompt hidden">
   <div class="fs-card">
@@ -85,5 +103,11 @@
 </div>
 
 <script src="kiosk.js"></script>
+<script>
+  // Register service worker for PWA installability and shell caching
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+</script>
 </body>
 </html>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Address bar pill: dark bg + subtle border, matching PC's #0f1322 / border -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#0f1322" />
+    <corners android:radius="20dp" />
+    <stroke
+        android:width="1dp"
+        android:color="#1a2236" />
+</shape>

@@ -67,6 +67,56 @@ const BUILTIN_AI_DOMAINS = [
   // GitHub Copilot (web)
   'githubnext.com',
   'copilot.github.com',
+  // Newly added domains/wrappers
+  'gpex.ai',
+  'phind.com',
+  'kagi.com',
+  'exa.ai',
+  'jasper.ai',
+  'writesonic.com',
+  'quillbot.com',
+  'wordtune.com',
+  'grammarly.com',
+  'copy.ai',
+  'rytr.me',
+  'replit.com',
+  'codeium.com',
+  'cursor.sh',
+  'cursor.com',
+  'tabnine.com',
+  'midjourney.com',
+  'sora.com',
+  'luma.ai',
+  'pika.art',
+  'suno.com',
+  'udio.com',
+  'elevenlabs.io',
+  'vivid.ai',
+  'blackbox.ai',
+  'v0.dev',
+  'chatlarena.org',
+  'lmarena.ai',
+];
+
+// Backend APIs used by wrapper/custom AI applications
+const BUILTIN_AI_API_BACKENDS = [
+  'api.openai.com',
+  'api.anthropic.com',
+  'generativelanguage.googleapis.com',
+  'api.mistral.ai',
+  'api.x.ai',
+  'api.deepseek.com',
+  'api.cohere.com',
+  'api.together.ai',
+  'api.deepinfra.com',
+  'api.groq.com',
+  'openrouter.ai',
+  'api-inference.huggingface.co',
+  'api.replicate.com',
+  'api.fireworks.ai',
+  'api.cerebras.ai',
+  'api.sambanova.ai',
+  'gateway.ai.cloudflare.com',
 ];
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -79,11 +129,15 @@ function attach(webContents) {
   // Block navigation to AI domains (including subframes and programmatic loadURL)
   webContents.on('will-frame-navigate', (event, details) => {
     const url = details.url;
-    if (isAiBlocked(url)) {
+    const resType = details.isMainFrame ? 'mainFrame' : 'subFrame';
+    if (isAiBlocked(url, resType)) {
       event.preventDefault();
       auditLog.log('AI_URL_BLOCKED', { url });
       if (details.isMainFrame) {
-        webContents.send('url-blocked', { url, reason: 'ai' });
+        const owner = webContents.getOwnerBrowserWindow();
+        if (owner && !owner.isDestroyed()) {
+          owner.webContents.send('browser:show-blocked-toast', { url });
+        }
       }
       console.warn('[URLFilter] Blocked AI frame navigation to:', url);
     }
@@ -91,8 +145,12 @@ function attach(webContents) {
 
   // Block new-window/popup creation — force links to open in a new tab
   webContents.setWindowOpenHandler(({ url }) => {
-    if (isAiBlocked(url)) {
+    if (isAiBlocked(url, 'mainFrame')) {
       auditLog.log('AI_POPUP_BLOCKED', { url });
+      const owner = webContents.getOwnerBrowserWindow();
+      if (owner && !owner.isDestroyed()) {
+        owner.webContents.send('browser:show-blocked-toast', { url });
+      }
       return { action: 'deny' };
     }
     
@@ -108,14 +166,18 @@ function attach(webContents) {
 
   // Block redirects to AI domains
   webContents.on('will-redirect', (event, url) => {
-    if (isAiBlocked(url)) {
+    if (isAiBlocked(url, 'mainFrame')) {
       event.preventDefault();
       auditLog.log('AI_REDIRECT_BLOCKED', { url });
+      const owner = webContents.getOwnerBrowserWindow();
+      if (owner && !owner.isDestroyed()) {
+        owner.webContents.send('browser:show-blocked-toast', { url });
+      }
       console.warn('[URLFilter] Blocked AI redirect to:', url);
     }
   });
 
-  // Block DevTools — always
+  // DevTools are always blocked during exam sessions
   webContents.on('devtools-opened', () => {
     webContents.closeDevTools();
     auditLog.log('DEVTOOLS_BLOCKED');
@@ -124,12 +186,57 @@ function attach(webContents) {
 }
 
 /**
+ * Check if the URL is explicitly allowed (exam host or admin allowed domains).
+ * Whitelisted domains are NEVER blocked by any AI filter layer.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isAllowedDomain(url) {
+  if (!url) return false;
+  let hostname;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  const normalizedHostname = hostname.replace(/^www\./, '');
+
+  const cfg = config.get();
+  // 1. Always allow examUrl domain
+  if (cfg.examUrl) {
+    try {
+      const examHost = new URL(cfg.examUrl).hostname.toLowerCase().replace(/^www\./, '');
+      if (normalizedHostname === examHost || normalizedHostname.endsWith(`.${examHost}`)) {
+        return true;
+      }
+    } catch {}
+  }
+
+  // 2. Allow domains listed in allowedDomains
+  const allowed = cfg.allowedDomains || [];
+  for (const domain of allowed) {
+    const d = domain.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '');
+    if (!d) continue;
+    if (normalizedHostname === d || normalizedHostname.endsWith(`.${d}`)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Check whether a URL belongs to a blocked AI domain.
  * Returns true if the URL should be BLOCKED.
  */
-function isAiBlocked(url) {
+function isAiBlocked(url, resourceType = 'mainFrame') {
+  // Block data: and javascript: URIs to prevent self-contained bypasses
+  if (url && (url.startsWith('data:') || url.startsWith('javascript:'))) {
+    return true;
+  }
+
   // Always allow internal / blank pages
-  if (!url || url === 'about:blank' || url.startsWith('data:') || url.startsWith('file://')) {
+  if (!url || url === 'about:blank' || url.startsWith('file://')) {
     return false;
   }
 
@@ -143,16 +250,63 @@ function isAiBlocked(url) {
   // Normalize hostname: strip leading 'www.' for checking
   const normalizedHostname = hostname.replace(/^www\./, '');
 
-  // Check built-in list
-  for (const domain of BUILTIN_AI_DOMAINS) {
-    const d = domain.trim().toLowerCase().replace(/^www\./, '');
-    if (normalizedHostname === d || normalizedHostname.endsWith(`.${d}`)) {
+  // Whitelist/allowed domain checks first (always allowed)
+  if (isAllowedDomain(url)) {
+    return false;
+  }
+
+  const cfg = config.get();
+
+  // Layer 1: Check AI API backend domains (block for all resource types)
+  if (!cfg || cfg.features.blockAiApiBackends !== false) {
+    for (const backend of BUILTIN_AI_API_BACKENDS) {
+      const b = backend.trim().toLowerCase().replace(/^www\./, '');
+      if (normalizedHostname === b || normalizedHostname.endsWith(`.${b}`)) {
+        return true;
+      }
+    }
+
+    // AWS Bedrock pattern match
+    if (normalizedHostname.startsWith('bedrock-runtime.') && normalizedHostname.endsWith('.amazonaws.com')) {
+      return true;
+    }
+
+    // Localhost AI Server blocking (Ollama, LM Studio, etc.)
+    const blockedPorts = ['11434', '1234', '8080', '5000', '8000', '9000'];
+    let port;
+    try {
+      port = new URL(url).port;
+    } catch {}
+    if (normalizedHostname === 'localhost' || normalizedHostname === '127.0.0.1' || normalizedHostname.startsWith('192.168.') || normalizedHostname.startsWith('10.')) {
+      if (port && blockedPorts.includes(port)) {
+        return true;
+      }
+    }
+  }
+
+  // Layer 3: Block all .ai TLD domains (ONLY block for mainFrame and subFrame requests)
+  if (normalizedHostname.endsWith('.ai')) {
+    if (resourceType === 'mainFrame' || resourceType === 'subFrame') {
       return true;
     }
   }
 
-  // Check admin-configured extra blocked domains
-  const cfg = config.get();
+  // Layer 3: Check built-in list
+  for (const domain of BUILTIN_AI_DOMAINS) {
+    const d = domain.trim().toLowerCase().replace(/^www\./, '');
+    if (normalizedHostname === d || normalizedHostname.endsWith(`.${d}`)) {
+      // Bing.com: ONLY block mainFrame and subFrame to avoid breaking analytics pixels on allowed sites
+      if (d === 'bing.com') {
+        if (resourceType === 'mainFrame' || resourceType === 'subFrame') {
+          return true;
+        }
+      } else {
+        return true;
+      }
+    }
+  }
+
+  // Check admin-configured extra blocked domains (block for all resource types)
   const extra = cfg.blockedAiDomains || [];
   for (const domain of extra) {
     const d = domain.trim().toLowerCase()
@@ -180,21 +334,53 @@ function getBuiltinAiDomains() {
  * Set up global session-level WebRequest interceptor to block all AI traffic
  */
 function init() {
+  // 1. Block requests to AI domains or data/javascript URIs
   session.defaultSession.webRequest.onBeforeRequest(
     { urls: ['*://*/*'] },
     (details, callback) => {
       const url = details.url;
-      if (isAiBlocked(url)) {
+
+      // Force Google Classic Web Search (udm=14) to block SGE/AI features
+      if (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') {
+        let isGoogleSearch = false;
+        try {
+          const host = new URL(url).hostname;
+          if (host.startsWith('google.') || host.includes('.google.')) {
+            if (new URL(url).pathname === '/search') {
+              isGoogleSearch = true;
+            }
+          }
+        } catch {}
+
+        if (isGoogleSearch) {
+          try {
+            const parsedUrl = new URL(url);
+            if (parsedUrl.searchParams.has('q') && parsedUrl.searchParams.get('udm') !== '14') {
+              parsedUrl.searchParams.set('udm', '14');
+              console.log('[URLFilter] Redirecting Google search to Classic Web search:', parsedUrl.toString());
+              callback({ redirectURL: parsedUrl.toString() });
+              return;
+            }
+          } catch (err) {
+            console.error('[URLFilter] Failed to append udm=14:', err);
+          }
+        }
+      }
+
+      if (isAiBlocked(url, details.resourceType)) {
         auditLog.log('AI_URL_BLOCKED', { url });
 
         if (details.resourceType === 'mainFrame' && details.webContentsId) {
           try {
             const wc = webContents.fromId(details.webContentsId);
             if (wc && !wc.isDestroyed()) {
-              wc.send('url-blocked', { url, reason: 'ai' });
+              const owner = wc.getOwnerBrowserWindow();
+              if (owner && !owner.isDestroyed()) {
+                owner.webContents.send('browser:show-blocked-toast', { url });
+              }
             }
           } catch (err) {
-            console.error('[URLFilter] Failed to send url-blocked event:', err);
+            console.error('[URLFilter] Failed to send blocked toast event:', err);
           }
         }
 
@@ -205,6 +391,127 @@ function init() {
       }
     }
   );
+
+  // 2. Block streaming/SSE responses from non-allowed hosts (detects AI streaming)
+  session.defaultSession.webRequest.onHeadersReceived(
+    { urls: ['*://*/*'] },
+    (details, callback) => {
+      const cfg = config.get();
+      if (!cfg || cfg.features.blockAiStreaming !== false) {
+        const responseHeaders = details.responseHeaders || {};
+        let contentType = '';
+        for (const key of Object.keys(responseHeaders)) {
+          if (key.toLowerCase() === 'content-type') {
+            const values = responseHeaders[key];
+            if (Array.isArray(values)) {
+              contentType = values.join(';');
+            } else if (typeof values === 'string') {
+              contentType = values;
+            }
+            break;
+          }
+        }
+
+        if (contentType.toLowerCase().includes('text/event-stream')) {
+          const url = details.url;
+          if (!isAllowedDomain(url)) {
+            auditLog.log('AI_STREAM_BLOCKED', { url });
+            console.warn('[URLFilter] Blocked AI streaming response from:', url);
+            callback({ cancel: true });
+            return;
+          }
+        }
+      }
+      callback({ responseHeaders: details.responseHeaders });
+    }
+  );
 }
 
-module.exports = { init, attach, isAiBlocked, getBuiltinAiDomains };
+module.exports = { init, attach, isAiBlocked, getBuiltinAiDomains, isInputBlocked };
+
+/**
+ * Check if the user input in the address bar should be blocked because it contains AI.
+ * @param {string} text
+ * @returns {boolean}
+ */
+function isInputBlocked(text) {
+  if (!text) return false;
+  const lower = text.trim().toLowerCase();
+
+  // 1. Check if the input contains the standalone word "ai"
+  if (/\bai\b/i.test(lower)) {
+    return true;
+  }
+
+  // 2. Check if the input contains general AI keywords
+  const AI_KEYWORDS = [
+    'chatgpt',
+    'gemini',
+    'claude',
+    'copilot',
+    'perplexity',
+    'deepseek',
+    'grok',
+    'openai',
+    'anthropic',
+    'artificial intelligence',
+    'llm',
+    'bard',
+    'gpex',
+    'blackbox',
+    'v0',
+    'lmarena',
+    'openrouter',
+    'ollama',
+    'replicate',
+    'phind',
+    'kagi',
+    'quillbot',
+    'wordtune',
+    'jasper',
+    'writesonic',
+    'suno',
+    'udio',
+    'elevenlabs'
+  ];
+
+  for (const keyword of AI_KEYWORDS) {
+    if (lower.includes(keyword)) {
+      return true;
+    }
+  }
+
+  // 3. Check against built-in and extra blocked domains
+  const tlds = ['com', 'org', 'net', 'edu', 'gov', 'co', 'io', 'ai', 'uk', 'us', 'ca', 'au', 'nz', 'de', 'fr', 'jp', 'cn', 'ru', 'in', 'br', 'za'];
+  const EXCLUDED_LABELS = ['google', 'microsoft', 'bing', 'github', 'huggingface', 'x', 'you'];
+
+  const allDomains = [...BUILTIN_AI_DOMAINS];
+  const cfg = config.get();
+  if (cfg && cfg.blockedAiDomains) {
+    allDomains.push(...cfg.blockedAiDomains);
+  }
+
+  for (const domain of allDomains) {
+    const d = domain.trim().toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .split('/')[0];
+    if (!d) continue;
+
+    // Check if the input contains the exact domain/subdomain
+    if (lower.includes(d)) {
+      return true;
+    }
+
+    // Check label parts of the domain (excluding common TLDs and generic labels)
+    const parts = d.split('.');
+    const labelParts = parts.filter(p => p.length > 2 && !tlds.includes(p) && !EXCLUDED_LABELS.includes(p) && p !== 'www');
+    for (const label of labelParts) {
+      if (lower.includes(label)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+

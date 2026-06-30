@@ -6,6 +6,7 @@
 const { globalShortcut, app } = require('electron');
 const { exec } = require('child_process');
 const auditLog = require('./auditLog');
+const config = require('./config');
 
 // ─── List of shortcuts to block ──────────────────────────────────────────────
 
@@ -64,6 +65,10 @@ const BLOCKED_SHORTCUTS = [
   'F6',                 // Address bar focus
   'F10',               // Menu bar
   'F11',               // Fullscreen toggle (we manage this ourselves)
+  // Windows 11 AI / overlay features
+  'Super+C',           // Windows Copilot
+  'Super+G',           // Xbox Game Bar
+  'Super+Shift+F',     // Copilot sidebar on some builds
 ];
 
 let registered = [];
@@ -162,4 +167,82 @@ function _macosLockdown() {
   // For now globalShortcut covers the important ones.
 }
 
-module.exports = { registerAll, unregisterAll };
+module.exports = { registerAll, unregisterAll, setupInputBarrier };
+
+/**
+ * Register before-input-event interceptor on a BrowserWindow instance.
+ * @param {Electron.BrowserWindow} window
+ */
+function setupInputBarrier(window) {
+  window.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+
+    const cfg = config.get();
+    const isAlt = input.alt;
+    const isControl = input.control;
+    const isShift = input.shift;
+    const isMeta = input.meta;
+    const key = input.key.toLowerCase();
+
+    // DevTools shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U) are already blocked
+    // at the globalShortcut level via BLOCKED_SHORTCUTS — no extra handling needed here.
+
+    // Keyboard Shortcuts (General Lockdown)
+    if (!cfg || cfg.features.blockKeyboardShortcuts !== false) {
+      // Windows 11 Copilot / Xbox overlays via Super keys
+      if (isMeta && (key === 'c' || key === 'g' || (isShift && key === 'f'))) {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Super+' + key.toUpperCase() });
+        return;
+      }
+      // Alt+Tab
+      if (isAlt && key === 'tab') {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Alt+Tab' });
+        return;
+      }
+      // F5, Ctrl+R
+      if (key === 'f5' || (isControl && key === 'r')) {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: key.toUpperCase() });
+        return;
+      }
+      // Ctrl+N (New Window), Ctrl+W (Close Window)
+      if (isControl && (key === 'n' || key === 'w')) {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Ctrl+' + key.toUpperCase() });
+        return;
+      }
+      // Ctrl+P (Print), Ctrl+S (Save)
+      if (isControl && (key === 'p' || key === 's')) {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Ctrl+' + key.toUpperCase() });
+        return;
+      }
+      // Ctrl+F, F3 (Find)
+      if ((isControl && key === 'f') || key === 'f3') {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Find' });
+        return;
+      }
+      // Alt+F4 (Close window)
+      if (isAlt && key === 'f4') {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Alt+F4' });
+        return;
+      }
+      // Zoom: Ctrl+Plus, Ctrl+Minus, Ctrl+0
+      if (isControl && (key === '+' || key === '-' || key === '=' || key === '0')) {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Zoom' });
+        return;
+      }
+      // Address bar shortcuts: Ctrl+L, Alt+D, F6
+      if ((isControl && key === 'l') || (isAlt && key === 'd') || key === 'f6') {
+        event.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'AddressFocus' });
+        return;
+      }
+    }
+  });
+}

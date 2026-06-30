@@ -1,6 +1,6 @@
 {
   "name": "secure-exam-browser",
-  "productName": "SecureExam Browser",
+  "productName": "Prodigy Browser",
   "version": "1.0.0",
   "description": "A secure, locked-down browser for digital exams",
   "main": "src/main/index.js",
