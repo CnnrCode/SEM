@@ -1,19 +1,19 @@
 /* browser.css — Styles for the SecureExam Browser Chrome UI */
 
 :root {
-  --bg-main: #f1f3f4;
-  --bg-chrome: #dee1e6;       /* Light Chrome grey for tabs background */
-  --bg-input: #f1f3f4;        /* Address bar background when not active */
-  --bg-tab-hover: rgba(0, 0, 0, 0.06);
-  --bg-tab-active: #ffffff;   /* Active tab is white */
-  --border-color: #dee1e6;
-  --text-main: #202124;       /* Dark grey main text */
-  --text-muted: #5f6368;      /* Grey muted text */
-  --accent: #1a73e8;          /* Google blue */
-  --accent-hover: #1557b0;
-  --danger: #d93025;
-  --danger-hover: #b31412;
-  --success: #1e8e3e;
+  --bg-main: #0a0e1a;
+  --bg-chrome: #13182b;
+  --bg-input: #0f1322;
+  --bg-tab-hover: rgba(255, 255, 255, 0.05);
+  --bg-tab-active: #1e293b;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent: #4f8ef7;
+  --accent-hover: #3b7ad8;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #10b981;
 }
 
 * {
@@ -78,65 +78,32 @@ body, html {
 .tab {
   display: flex;
   align-items: center;
-  height: 34px;
-  min-width: 140px;
-  max-width: 200px;
-  padding: 0 16px 0 12px;
+  height: 32px;
+  min-width: 120px;
+  max-width: 180px;
+  padding: 0 10px;
   border-radius: 8px 8px 0 0;
   background-color: transparent;
   color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
   cursor: pointer;
   position: relative;
   transition: background-color 0.2s, color 0.2s;
-  border: none;
-  -webkit-app-region: no-drag;
+  border: 1px solid transparent;
+  border-bottom: none;
+  -webkit-app-region: no-drag; /* Allows clicking tabs inside draggable header */
 }
 
 .tab:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-tab-hover);
   color: var(--text-main);
-  border-radius: 8px 8px 0 0;
 }
 
 .tab.active {
   background-color: var(--bg-tab-active);
   color: var(--text-main);
-  border-radius: 8px 8px 0 0;
+  border-color: var(--border-color);
   z-index: 2;
-}
-
-.tab.active::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: -8px;
-  width: 8px;
-  height: 8px;
-  background: var(--bg-tab-active);
-  border-bottom-right-radius: 8px;
-  box-shadow: 4px 0 0 0 var(--bg-tab-active);
-}
-
-.tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: -8px;
-  width: 8px;
-  height: 8px;
-  background: var(--bg-tab-active);
-  border-bottom-left-radius: 8px;
-  box-shadow: -4px 0 0 0 var(--bg-tab-active);
-}
-
-.tab-chrome-icon {
-  margin-right: 8px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .tab-title {
@@ -196,8 +163,7 @@ body, html {
   gap: 12px;
   background-color: var(--bg-tab-active);
   border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid #dee1e6;
-  -webkit-app-region: no-drag;
+  -webkit-app-region: no-drag; /* Clickable controls */
 }
 
 #nav-buttons {
@@ -242,25 +208,19 @@ body, html {
   display: flex;
   align-items: center;
   flex-grow: 1;
-  background-color: #f1f3f4;
-  border: 1px solid transparent;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   height: 32px;
-  padding: 0 14px;
+  padding: 0 12px;
   gap: 8px;
   position: relative;
-  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-
-#address-container:hover {
-  background-color: #e8eaed;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 #address-container:focus-within {
-  background-color: #ffffff;
-  border: 2px solid var(--accent);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 0 13px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(79, 142, 247, 0.25);
 }
 
 #security-icon {
@@ -392,14 +352,13 @@ webview.hidden {
 }
 
 .modal-content {
-  background: #ffffff;
-  border: 1px solid #dee1e6;
+  background: var(--bg-chrome);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 32px;
   width: 380px;
-  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
   text-align: center;
-  color: #202124;
 }
 
 .modal-content h3 {
@@ -707,14 +666,14 @@ webview.hidden {
 .tab-context-menu {
   position: fixed;
   z-index: 100000;
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(19, 24, 43, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 6px 0;
   width: 160px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
 }
@@ -729,7 +688,7 @@ webview.hidden {
 }
 
 .context-menu-item:hover {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: rgba(255, 255, 255, 0.05);
   color: var(--text-main);
 }
 
@@ -772,12 +731,12 @@ webview.hidden {
   top: 75px; /* Right below the control bar */
   right: 12px;
   width: 280px;
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(19, 24, 43, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   z-index: 9999;
   padding: 8px;
   display: flex;
@@ -812,7 +771,7 @@ webview.hidden {
 }
 
 .menu-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-tab-active);
 }
 
 .menu-item-icon {

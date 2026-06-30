@@ -387,7 +387,6 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
   tabEl.className = 'tab';
   tabEl.id = `tab-control-${id}`;
   tabEl.innerHTML = `
-    <svg class="tab-chrome-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M12 0C8.16 0 4.87 2.15 3.16 5.33l4.89 8.46c.14-.52.54-.95 1.07-1.16l2.88-5c1.1-1.9 3.53-2.55 5.43-1.45.69.4 1.23.99 1.57 1.7L22 4.41C19.72 1.7 16.08 0 12 0z"/><path fill="#EA4335" d="M23.63 7.82c-.88-2.62-2.57-4.88-4.82-6.41l-3.87 6.7c1.37.79 1.84 2.54 1.05 3.91-.29.5-.73.87-1.25 1.05l-4.14 7.17C11 20.31 11.5 20.3 12 20.3c4.58 0 8.3-3.72 8.3-8.3 0-1.52-.41-2.94-1.12-4.18z"/><path fill="#FBBC05" d="M9.16 11.63L3.16 1.25A12.016 12.016 0 0 0 .37 16.18l3.87 6.7c-.52-.18-.95-.59-1.16-1.12-.79-1.37-.32-3.12 1.05-3.91l4.14-7.17c.29-.5.73-.87 1.25-1.05z"/><path fill="#FFF" d="M12 7.7c-2.37 0-4.3 1.93-4.3 4.3s1.93 4.3 4.3 4.3 4.3-1.93 4.3-4.3S14.37 7.7 12 7.7z"/><path fill="#4285F4" d="M12 8.7c-1.82 0-3.3 1.48-3.3 3.3s1.48 3.3 3.3 3.3 3.3-1.48 3.3-3.3-1.48-3.3-3.3-3.3z"/></svg>
     <span class="tab-title" id="tab-title-${id}">${customTitle}</span>
     ${canClose ? `<span class="tab-close" id="tab-close-${id}">✕</span>` : ''}
   `;
@@ -429,7 +428,11 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
     switchTab(id);
   });
 
-  // Double click to close tab removed by request
+  tabEl.addEventListener('dblclick', (e) => {
+    if (canClose) {
+      closeTab(id);
+    }
+  });
 
   tabEl.addEventListener('contextmenu', (e) => {
     e.preventDefault();
@@ -895,6 +898,7 @@ async function toggleMagnifier() {
     lens.style.display = 'none';
     lens.style.opacity = '0';
     tab.webviewElement.send('guest:set-magnifier-active', false);
+    showToast('Magnifier Lens deactivated.', 'info');
   } else {
     // Activate
     isMagnifierActive = true;
@@ -928,6 +932,8 @@ async function toggleMagnifier() {
     lens.classList.remove('hidden');
     lens.style.display = 'block';
     lens.style.opacity = '1';
+    
+    showToast('Magnifier Lens active. Hover to magnify. Ctrl+Scroll adjusts scale. Ctrl+M to close.', 'success');
   }
 }
 
