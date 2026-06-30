@@ -53,10 +53,6 @@ const BLOCKED_SHORTCUTS = [
   'Alt+D',
   // Find (allowed in some configs, blocked here by default)
   'Ctrl+F',
-  // Zoom
-  'Ctrl+Plus',
-  'Ctrl+Minus',
-  'Ctrl+0',
   // Misc
   'Ctrl+P',             // Print
   'Ctrl+S',             // Save
@@ -229,12 +225,6 @@ function setupInputBarrier(window) {
       if (isAlt && key === 'f4') {
         event.preventDefault();
         auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Alt+F4' });
-        return;
-      }
-      // Zoom: Ctrl+Plus, Ctrl+Minus, Ctrl+0
-      if (isControl && (key === '+' || key === '-' || key === '=' || key === '0')) {
-        event.preventDefault();
-        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Zoom' });
         return;
       }
       // Address bar shortcuts: Ctrl+L, Alt+D, F6

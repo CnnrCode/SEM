@@ -38,6 +38,7 @@ app.whenReady().then(() => {
   config.load();
   auditLog.init();
   urlFilter.init();
+  setupDownloadHandler();
 
   // Create standard Edit menu so standard keyboard shortcuts (Copy, Paste, etc.) work
   const template = [
@@ -132,6 +133,7 @@ function launchExam() {
     webPreferences: {
       preload: path.join(__dirname, '../preload/browserPreload.js'),
       webviewTag: true,
+      plugins: true,
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -439,9 +441,59 @@ ipcMain.handle('admin:quit', () => {
 });
 
 // Log events from renderer preloads
-ipcMain.on('exam-event', (_, { type, ...data }) => {
+ipcMain.on('exam-event', (event, { type, ...data }) => {
+  if (type === 'ZOOM_SHORTCUT') {
+    if (examWindow && !examWindow.isDestroyed()) {
+      examWindow.webContents.send('browser:zoom', data.key);
+    }
+    return;
+  }
   auditLog.log(type, data);
 });
+
+// Secure Download Manager
+function setupDownloadHandler() {
+  const { session } = require('electron');
+  session.defaultSession.on('will-download', (event, item, webContents) => {
+    const name = item.getFilename();
+    const size = item.getTotalBytes();
+    
+    // Log download start
+    auditLog.log('DOWNLOAD_STARTED', { filename: name, sizeBytes: size });
+    if (examWindow && !examWindow.isDestroyed()) {
+      examWindow.webContents.send('browser:show-toast', { message: `Download started: ${name}`, type: 'download' });
+    }
+    
+    // Set default path to User Downloads folder
+    item.setSaveDialogOptions({
+      defaultPath: path.join(app.getPath('downloads'), name)
+    });
+    
+    item.on('updated', (event, state) => {
+      if (state === 'interrupted') {
+        auditLog.log('DOWNLOAD_INTERRUPTED', { filename: name });
+        if (examWindow && !examWindow.isDestroyed()) {
+          examWindow.webContents.send('browser:show-toast', { message: `Download interrupted: ${name}`, type: 'download' });
+        }
+      }
+    });
+    
+    item.once('done', (event, state) => {
+      if (state === 'completed') {
+        const savePath = item.getSavePath();
+        auditLog.log('DOWNLOAD_COMPLETED', { filename: name, path: savePath });
+        if (examWindow && !examWindow.isDestroyed()) {
+          examWindow.webContents.send('browser:show-toast', { message: `Download completed successfully: ${name}`, type: 'success' });
+        }
+      } else {
+        auditLog.log('DOWNLOAD_FAILED', { filename: name, reason: state });
+        if (examWindow && !examWindow.isDestroyed()) {
+          examWindow.webContents.send('browser:show-toast', { message: `Download failed: ${name} (${state})`, type: 'error' });
+        }
+      }
+    });
+  });
+}
 
 // Attach URL filter to any webviews that get created, and push config into them
 app.on('web-contents-created', (event, contents) => {

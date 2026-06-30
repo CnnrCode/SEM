@@ -25,5 +25,11 @@ contextBridge.exposeInMainWorld('sebBrowser', {
   },
   onShowBlockedToast: (callback) => {
     ipcRenderer.on('browser:show-blocked-toast', (event, data) => callback(data));
+  },
+  onShowToast: (callback) => {
+    ipcRenderer.on('browser:show-toast', (event, data) => callback(data));
+  },
+  onZoom: (callback) => {
+    ipcRenderer.on('browser:zoom', (event, key) => callback(key));
   }
 });

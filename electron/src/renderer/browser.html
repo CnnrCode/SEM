@@ -43,6 +43,12 @@
           </div>
           <input type="text" id="address-input" placeholder="Search or enter web address" autocomplete="off" spellcheck="false">
           <div id="loading-spinner" class="hidden"></div>
+          
+          <!-- Address Bar Zoom Button -->
+          <button id="address-zoom-btn" class="address-zoom-btn hidden" title="Zoom">
+            <svg viewBox="0 0 24 24" class="zoom-icon-svg"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <span id="address-zoom-text">100%</span>
+          </button>
         </div>
 
         <!-- Actions -->
@@ -75,5 +81,22 @@
 
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
+
+  <!-- Tab Context Menu -->
+  <div id="tab-context-menu" class="tab-context-menu hidden">
+    <div class="context-menu-item" id="menu-reload">Reload Tab</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" id="menu-close">Close Tab</div>
+    <div class="context-menu-item" id="menu-close-others">Close Other Tabs</div>
+  </div>
+
+  <!-- Zoom Popover Bubble -->
+  <div id="zoom-popover" class="zoom-popover hidden">
+    <button id="popover-zoom-out" class="popover-btn" title="Zoom Out">−</button>
+    <span id="popover-zoom-val">100%</span>
+    <button id="popover-zoom-in" class="popover-btn" title="Zoom In">+</button>
+    <div class="popover-separator"></div>
+    <button id="popover-zoom-reset" class="popover-reset-btn">Reset</button>
+  </div>
 </body>
 </html>

@@ -182,12 +182,38 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ─── Floating close button injection ──────────────────────────────────────────
 // Initialize on DOM load
 window.addEventListener('DOMContentLoaded', () => {
   _injectFloatingCloseButton();
   _setupGoogleAiShield();
+  _setupZoomShortcuts();
 });
+
+function _setupZoomShortcuts() {
+  window.addEventListener('keydown', (e) => {
+    const isControl = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
+    
+    // Zoom shortcuts: Ctrl+Plus (or Ctrl+=), Ctrl+Minus, Ctrl+0
+    if (isControl && (key === '+' || key === '-' || key === '=' || key === '0')) {
+      e.preventDefault();
+      ipcRenderer.send('exam-event', { type: 'ZOOM_SHORTCUT', key: e.key });
+    }
+  }, true);
+
+  window.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        // Scroll up -> Zoom In
+        ipcRenderer.send('exam-event', { type: 'ZOOM_SHORTCUT', key: '+' });
+      } else if (e.deltaY > 0) {
+        // Scroll down -> Zoom Out
+        ipcRenderer.send('exam-event', { type: 'ZOOM_SHORTCUT', key: '-' });
+      }
+    }
+  }, { passive: false });
+}
 
 function _injectFloatingCloseButton() {
   // Prevent duplicate floating buttons

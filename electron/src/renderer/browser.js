@@ -10,6 +10,7 @@ let examPreloadPath = '';
 let tabs = [];
 let tabIdCounter = 0;
 let activeTabId = null;
+let contextMenuTabId = null;
 
 // DOM Elements
 const tabsContainer = document.getElementById('tabs-container');
@@ -25,6 +26,14 @@ const exitModal = document.getElementById('exit-modal');
 const exitSubmitBtn = document.getElementById('exit-submit-btn');
 const exitCancelBtn = document.getElementById('exit-cancel-btn');
 const webviewsContainer = document.getElementById('webview-views');
+const tabContextMenu = document.getElementById('tab-context-menu');
+const addressZoomBtn = document.getElementById('address-zoom-btn');
+const addressZoomText = document.getElementById('address-zoom-text');
+const zoomPopover = document.getElementById('zoom-popover');
+const popoverZoomOut = document.getElementById('popover-zoom-out');
+const popoverZoomIn = document.getElementById('popover-zoom-in');
+const popoverZoomVal = document.getElementById('popover-zoom-val');
+const popoverZoomReset = document.getElementById('popover-zoom-reset');
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load config & preload paths
@@ -54,6 +63,76 @@ document.addEventListener('DOMContentLoaded', async () => {
   navForwardBtn.addEventListener('click', navigateForward);
   navRefreshBtn.addEventListener('click', navigateRefresh);
   navHomeBtn.addEventListener('click', navigateHome);
+
+  // Zoom Button & Popover Listeners
+  if (addressZoomBtn) {
+    addressZoomBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleZoomPopover();
+    });
+  }
+
+  if (popoverZoomOut) popoverZoomOut.addEventListener('click', (e) => { e.stopPropagation(); zoomActiveTab(-0.1); });
+  if (popoverZoomIn) popoverZoomIn.addEventListener('click', (e) => { e.stopPropagation(); zoomActiveTab(0.1); });
+  if (popoverZoomReset) popoverZoomReset.addEventListener('click', (e) => { e.stopPropagation(); resetZoomActiveTab(); });
+
+  // Dismiss Zoom Popover on outside click
+  document.addEventListener('click', (e) => {
+    if (zoomPopover && !zoomPopover.classList.contains('hidden')) {
+      if (!zoomPopover.contains(e.target) && e.target !== addressZoomBtn && !addressZoomBtn.contains(e.target)) {
+        zoomPopover.classList.add('hidden');
+      }
+    }
+  });
+
+  // Context Menu Item Listeners
+  const menuReload = document.getElementById('menu-reload');
+  if (menuReload) {
+    menuReload.addEventListener('click', () => {
+      if (contextMenuTabId !== null) {
+        const tab = tabs.find(t => t.id === contextMenuTabId);
+        if (tab) tab.webviewElement.reload();
+      }
+    });
+  }
+
+  const menuClose = document.getElementById('menu-close');
+  if (menuClose) {
+    menuClose.addEventListener('click', () => {
+      if (contextMenuTabId !== null) {
+        closeTab(contextMenuTabId);
+      }
+    });
+  }
+
+  const menuCloseOthers = document.getElementById('menu-close-others');
+  if (menuCloseOthers) {
+    menuCloseOthers.addEventListener('click', () => {
+      if (contextMenuTabId !== null) {
+        const tabsToClose = tabs.filter(t => t.id !== contextMenuTabId && t.canClose).map(t => t.id);
+        tabsToClose.forEach(id => closeTab(id));
+      }
+    });
+  }
+
+  // IPC Event listeners
+  window.sebBrowser.onShowToast((data) => {
+    if (data && data.message) {
+      showToast(data.message, data.type);
+    } else {
+      showToast(data, 'info');
+    }
+  });
+
+  window.sebBrowser.onZoom((key) => {
+    if (key === '=' || key === '+') {
+      zoomActiveTab(0.1);
+    } else if (key === '-') {
+      zoomActiveTab(-0.1);
+    } else if (key === '0') {
+      resetZoomActiveTab();
+    }
+  });
 
   addressInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
@@ -163,6 +242,7 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
   // Set safety attributes
   webview.setAttribute('nodeintegration', 'false');
   webview.setAttribute('contextisolation', 'true');
+  webview.setAttribute('plugins', 'true');
   webview.className = 'hidden';
 
   // Add elements to DOM
@@ -175,7 +255,8 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
     title: customTitle,
     webviewElement: webview,
     tabElement: tabEl,
-    canClose
+    canClose,
+    zoomFactor: 1.0
   };
 
   tabs.push(tabObj);
@@ -184,6 +265,17 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
   tabEl.addEventListener('click', (e) => {
     if (e.target.classList.contains('tab-close')) return;
     switchTab(id);
+  });
+
+  tabEl.addEventListener('dblclick', (e) => {
+    if (canClose) {
+      closeTab(id);
+    }
+  });
+
+  tabEl.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showTabContextMenu(id, e.clientX, e.clientY);
   });
 
   if (canClose) {
@@ -217,6 +309,7 @@ function switchTab(id) {
   activeTabId = id;
 
   updateNavigationUI(currentTab);
+  updateZoomUI(currentTab);
   
   // Try to focus the current webview
   try {
@@ -382,21 +475,39 @@ async function attemptExit() {
 
 function showBlockedToast(url) {
   showToast(
-    `You cannot use other AI tools. Prodigy Browser has a built-in AI tutor that provides guidance without giving direct answers.`
+    `You cannot use other AI tools. Prodigy Browser has a built-in AI tutor that provides guidance without giving direct answers.`,
+    'blocked'
   );
 }
 
-function showToast(message) {
+function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
   const toast = document.createElement('div');
-  toast.className = 'toast';
+  toast.className = `toast ${type}`;
+  
+  let icon = 'ℹ️';
+  let title = 'Notification';
+  
+  if (type === 'blocked') {
+    icon = '🛡️';
+    title = 'AI Blocking Shield';
+  } else if (type === 'download') {
+    icon = '📥';
+    title = 'File Download';
+  } else if (type === 'success') {
+    icon = '✅';
+    title = 'Success';
+  } else if (type === 'error') {
+    icon = '❌';
+    title = 'Error';
+  }
   
   toast.innerHTML = `
     <div class="toast-header">
       <span class="toast-title">
-        <span>🛡️</span> AI Blocking Shield
+        <span>${icon}</span> ${title}
       </span>
       <button class="toast-close">✕</button>
     </div>
@@ -421,4 +532,105 @@ function showToast(message) {
 
   // Auto-dismiss after 6 seconds
   setTimeout(dismiss, 6000);
+}
+
+// ─── Zoom Helpers ────────────────────────────────────────────────────────────
+
+function zoomActiveTab(delta) {
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (!tab) return;
+  
+  let newZoom = tab.zoomFactor + delta;
+  // Bound zoom between 50% and 300%
+  newZoom = Math.max(0.5, Math.min(3.0, newZoom));
+  
+  tab.zoomFactor = parseFloat(newZoom.toFixed(1));
+  try {
+    tab.webviewElement.setZoomFactor(tab.zoomFactor);
+  } catch (err) {
+    console.error('Failed to set zoom factor:', err);
+  }
+  
+  updateZoomUI(tab);
+  
+  // Log zoom event
+  window.sebBrowser.logEvent('BROWSER_ZOOM_CHANGED', { level: `${Math.round(tab.zoomFactor * 100)}%` });
+}
+
+function resetZoomActiveTab() {
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (!tab) return;
+  
+  tab.zoomFactor = 1.0;
+  try {
+    tab.webviewElement.setZoomFactor(1.0);
+  } catch (err) {
+    console.error('Failed to reset zoom factor:', err);
+  }
+  
+  updateZoomUI(tab);
+  window.sebBrowser.logEvent('BROWSER_ZOOM_RESET');
+}
+
+function updateZoomUI(tab) {
+  if (activeTabId !== tab.id) return;
+  
+  const percentage = Math.round(tab.zoomFactor * 100);
+  if (addressZoomText) addressZoomText.textContent = `${percentage}%`;
+  if (popoverZoomVal) popoverZoomVal.textContent = `${percentage}%`;
+  
+  if (addressZoomBtn) {
+    if (percentage === 100) {
+      addressZoomBtn.classList.add('hidden');
+      if (zoomPopover) zoomPopover.classList.add('hidden');
+    } else {
+      addressZoomBtn.classList.remove('hidden');
+    }
+  }
+}
+
+function toggleZoomPopover() {
+  if (!zoomPopover || !addressZoomBtn) return;
+  
+  const isHidden = zoomPopover.classList.contains('hidden');
+  if (isHidden) {
+    const rect = addressZoomBtn.getBoundingClientRect();
+    zoomPopover.style.left = `${rect.right - 145}px`;
+    zoomPopover.style.top = `${rect.bottom + 6}px`;
+    zoomPopover.classList.remove('hidden');
+  } else {
+    zoomPopover.classList.add('hidden');
+  }
+}
+
+// ─── Tab Context Menu Helpers ────────────────────────────────────────────────
+
+function showTabContextMenu(tabId, x, y) {
+  contextMenuTabId = tabId;
+  const menu = document.getElementById('tab-context-menu');
+  if (!menu) return;
+  
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
+  
+  // Disable "Close Tab" if it cannot be closed
+  const tabObj = tabs.find(t => t.id === tabId);
+  const closeItem = document.getElementById('menu-close');
+  if (tabObj && !tabObj.canClose) {
+    closeItem.classList.add('disabled');
+  } else {
+    closeItem.classList.remove('disabled');
+  }
+  
+  menu.classList.remove('hidden');
+  
+  // Dismiss listener
+  const dismissMenu = () => {
+    menu.classList.add('hidden');
+    document.removeEventListener('click', dismissMenu);
+  };
+  
+  setTimeout(() => {
+    document.addEventListener('click', dismissMenu);
+  }, 10);
 }
