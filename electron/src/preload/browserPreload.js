@@ -34,7 +34,16 @@ contextBridge.exposeInMainWorld('sebBrowser', {
   },
   isFullScreen: () => ipcRenderer.invoke('browser:isFullScreen'),
   toggleFullScreen: () => ipcRenderer.invoke('browser:toggleFullScreen'),
+  setTitleBarOverlay: (opts) => ipcRenderer.invoke('browser:setTitleBarOverlay', opts),
   onFullscreenChanged: (callback) => {
     ipcRenderer.on('browser:fullscreen-changed', (event, isFS) => callback(isFS));
+  },
+  
+  // Downloads Tab Support API
+  getDownloadsList: () => ipcRenderer.invoke('downloads:getList'),
+  cancelDownload: (id) => ipcRenderer.invoke('browser:cancelDownload', id),
+  showItemInFolder: (path) => ipcRenderer.invoke('browser:showItemInFolder', path),
+  onDownloadsUpdated: (callback) => {
+    ipcRenderer.on('browser:downloads-updated', (event, list) => callback(list));
   }
 });

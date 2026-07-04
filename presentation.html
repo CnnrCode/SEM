@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureExam Browser — Technical Briefing</title>
+  <meta name="description" content="A technical briefing on SecureExam Browser (SEB) and Prodigy Browser: architecture, lockdown mechanisms, AI blocking, and audit trails." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --yellow:  #FDC800;
+      --surface: #FBFBF9;
+      --navy:    #1C293C;
+      --red:     #DC2626;
+      --black:   #000000;
+      --shadow:  4px 4px 0 var(--black);
+      --border:  3px solid var(--black);
+    }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      background: var(--navy);
+      color: var(--navy);
+      font-family: 'JetBrains Mono', monospace;
+      overflow: hidden;
+    }
+
+    /* ── Slide Container ──────────────────────────────────────────────────────── */
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: hidden;
+    }
+    .slide.active { display: flex; }
+
+    /* ── Scanline overlay (artifact) ──────────────────────────────────────────── */
+    .slide::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,0.04) 3px,
+        rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* ── Corner Brackets (artifact) ──────────────────────────────────────────── */
+    .corner-brackets {
+      position: absolute;
+      inset: 16px;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .corner-brackets::before,
+    .corner-brackets::after,
+    .corner-brackets .cb-br,
+    .corner-brackets .cb-bl {
+      content: '';
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-color: var(--black);
+      border-style: solid;
+    }
+    .corner-brackets::before {
+      top: 0; left: 0;
+      border-width: 3px 0 0 3px;
+    }
+    .corner-brackets::after {
+      top: 0; right: 0;
+      border-width: 3px 3px 0 0;
+    }
+    .corner-brackets .cb-br {
+      bottom: 0; right: 0;
+      border-width: 0 3px 3px 0;
+    }
+    .corner-brackets .cb-bl {
+      bottom: 0; left: 0;
+      border-width: 0 0 3px 3px;
+    }
+
+    /* ── Metadata Label (artifact) ───────────────────────────────────────────── */
+    .meta-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: var(--black);
+      color: var(--yellow);
+      padding: 2px 8px;
+      display: inline-block;
+      user-select: none;
+    }
+
+    /* ── Rotated Text (artifact) ─────────────────────────────────────────────── */
+    .rotated-text {
+      position: absolute;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--black);
+      opacity: 0.35;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* ── Navigation ──────────────────────────────────────────────────────────── */
+    #nav {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 200;
+      background: var(--surface);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      padding: 8px 16px;
+    }
+
+    #nav button {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      background: var(--yellow);
+      color: var(--black);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      padding: 6px 18px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: transform 80ms ease, box-shadow 80ms ease;
+    }
+    #nav button:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--black);
+    }
+    #nav button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    #nav button.red {
+      background: var(--red);
+      color: var(--surface);
+    }
+
+    #slide-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--navy);
+      min-width: 72px;
+      text-align: center;
+    }
+
+    /* ── Progress bar ────────────────────────────────────────────────────────── */
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 4px;
+      background: var(--red);
+      transition: width 250ms ease;
+      z-index: 300;
+    }
+
+    /* ── Shared layout utilities ─────────────────────────────────────────────── */
+    .slide-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      position: relative;
+    }
+
+    .col-70 {
+      flex: 0 0 70%;
+      padding: 48px 40px 80px 52px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 20px;
+      position: relative;
+    }
+
+    .col-30 {
+      flex: 0 0 30%;
+      padding: 32px 28px 80px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 16px;
+      position: relative;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    h1 { font-size: clamp(2.4rem, 5vw, 3.6rem); }
+    h2 { font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
+    h3 { font-size: clamp(1rem, 2vw, 1.3rem); }
+
+    p, li {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(0.78rem, 1.3vw, 0.92rem);
+      line-height: 1.7;
+    }
+
+    ul { list-style: none; padding-left: 0; }
+    ul li::before {
+      content: '▸ ';
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    .card {
+      background: var(--surface);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      position: relative;
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 2px solid var(--black);
+      padding: 1px 8px;
+      margin-bottom: 4px;
+    }
+
+    .highlight { background: var(--yellow); padding: 0 3px; }
+    .danger    { color: var(--red); font-weight: 700; }
+
+    /* code blocks */
+    .code-block {
+      background: var(--navy);
+      color: var(--yellow);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      line-height: 1.6;
+      padding: 14px 18px;
+      border: var(--border);
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* stat numbers */
+    .stat-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: clamp(2rem, 4vw, 3rem);
+      color: var(--red);
+      display: block;
+      line-height: 1;
+    }
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--navy);
+    }
+
+    /* overlap helper */
+    .overlap-up   { margin-top: -14px; z-index: 2; position: relative; }
+    .overlap-left { margin-left: -18px; z-index: 2; position: relative; }
+
+    /* divider */
+    .divider {
+      height: 3px;
+      background: var(--black);
+      width: 100%;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 1 — TITLE
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-1 { background: var(--yellow); }
+    #slide-1 .col-70 { justify-content: center; }
+
+    #slide-1 .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      background: var(--black);
+      color: var(--yellow);
+      display: inline-block;
+      padding: 3px 12px;
+      margin-bottom: 12px;
+    }
+
+    #slide-1 h1 {
+      font-size: clamp(3rem, 6vw, 5rem);
+      color: var(--navy);
+      letter-spacing: -0.02em;
+    }
+
+    #slide-1 h1 span {
+      color: var(--red);
+      display: block;
+    }
+
+    #slide-1 .subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(0.8rem, 1.4vw, 1rem);
+      color: var(--navy);
+      max-width: 560px;
+      border-left: 4px solid var(--black);
+      padding-left: 14px;
+      margin-top: 8px;
+    }
+
+    #slide-1 .col-30 {
+      justify-content: flex-end;
+      align-items: flex-end;
+      padding-bottom: 90px;
+    }
+
+    #slide-1 .version-card {
+      background: var(--surface);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      width: 100%;
+    }
+
+    #slide-1 .version-card .vk {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--red);
+    }
+
+    #slide-1 .version-card .vv {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--navy);
+    }
+
+    #slide-1 .stamp {
+      position: absolute;
+      bottom: 100px;
+      right: 40px;
+      background: var(--red);
+      color: var(--surface);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 12px;
+      border: var(--border);
+      transform: rotate(-3deg);
+      box-shadow: var(--shadow);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 2 — WHAT IS SEB
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-2 { background: var(--surface); }
+    #slide-2 .col-30 { background: var(--yellow); border-left: var(--border); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 3 — ARCHITECTURE
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-3 { background: var(--navy); }
+    #slide-3 h2, #slide-3 p, #slide-3 li { color: var(--surface); }
+    #slide-3 .col-30 { border-left: 3px solid rgba(255,255,255,0.15); }
+    #slide-3 .card { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); box-shadow: 4px 4px 0 rgba(255,255,255,0.12); }
+    #slide-3 .card p, #slide-3 .card li { color: var(--surface); }
+    #slide-3 .divider { background: rgba(255,255,255,0.2); }
+    #slide-3 .tag { border-color: var(--yellow); color: var(--yellow); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 4 — LOCKDOWN
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-4 { background: var(--surface); }
+    #slide-4 .col-30 { background: var(--red); border-left: var(--border); }
+    #slide-4 .col-30 * { color: var(--surface) !important; }
+    #slide-4 .col-30 .card { background: rgba(0,0,0,0.15); border-color: rgba(0,0,0,0.3); box-shadow: 4px 4px 0 rgba(0,0,0,0.3); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 5 — AI DOMAIN BLOCK
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-5 { background: var(--yellow); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 6 — SCREEN GUARD
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-6 { background: var(--navy); }
+    #slide-6 h2, #slide-6 p, #slide-6 li { color: var(--surface); }
+    #slide-6 .col-30 { background: var(--red); border-left: var(--border); }
+    #slide-6 .col-30 * { color: var(--surface) !important; }
+    #slide-6 .col-30 .card { background: rgba(0,0,0,0.15); border-color: rgba(0,0,0,0.3); box-shadow: 4px 4px 0 rgba(0,0,0,0.3); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 7 — ADMIN PANEL
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-7 { background: var(--surface); }
+    #slide-7 .col-30 { background: var(--navy); border-left: var(--border); }
+    #slide-7 .col-30 * { color: var(--surface) !important; }
+    #slide-7 .col-30 .card { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); box-shadow: 4px 4px 0 rgba(255,255,255,0.12); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 8 — AUDIT LOG
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-8 { background: var(--yellow); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 9 — PLATFORM COVERAGE
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-9 { background: var(--surface); }
+    #slide-9 .col-30 { background: var(--yellow); border-left: var(--border); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SLIDE 10 — CLOSING
+    ═══════════════════════════════════════════════════════════════════════════ */
+    #slide-10 { background: var(--navy); }
+    #slide-10 h2, #slide-10 h3, #slide-10 p, #slide-10 li { color: var(--surface); }
+    #slide-10 .col-30 { background: var(--red); border-left: var(--border); }
+    #slide-10 .col-30 * { color: var(--surface) !important; }
+
+    /* ── Animations ──────────────────────────────────────────────────────────── */
+    @keyframes slideInLeft {
+      from { transform: translateX(-40px); opacity: 0; }
+      to   { transform: translateX(0);     opacity: 1; }
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(40px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    @keyframes fadeUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .slide.active .col-70 { animation: slideInLeft 300ms ease both; }
+    .slide.active .col-30 { animation: slideInRight 320ms ease both; }
+    .slide.active .card   { animation: fadeUp 350ms ease both; }
+    .slide.active .card:nth-child(2) { animation-delay: 60ms; }
+    .slide.active .card:nth-child(3) { animation-delay: 120ms; }
+    .slide.active .card:nth-child(4) { animation-delay: 180ms; }
+  </style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<div class="deck">
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 1 — TITLE
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide active" id="slide-1">
+    <div class="corner-brackets"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="top:38%;right:32px;transform:rotate(90deg);transform-origin:right center;">
+      SECURE EXAM BROWSER — PRODIGY REVIEW PH — v2026.07
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <div class="eyebrow">Technical Briefing — Symphonics Co. Ltd.</div>
+        <h1>
+          SecureExam<br/>
+          <span>Browser</span>
+        </h1>
+        <p class="subtitle">
+          An Electron-based kiosk browser engineered to enforce exam integrity
+          on the Prodigy Review platform — without relying on student compliance.
+        </p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">
+          <span class="meta-label">Platform: Windows · Android · PWA</span>
+          <span class="meta-label">Stack: Electron · Kotlin · Service Worker</span>
+        </div>
+      </div>
+
+      <div class="col-30">
+        <div class="version-card">
+          <div class="vk">Build Ref</div>
+          <div class="vv">SEB-2026</div>
+          <div style="height:2px;background:var(--black);margin:8px 0;"></div>
+          <div class="vk">Target URL</div>
+          <div style="font-family:'JetBrains Mono';font-size:0.68rem;word-break:break-all;margin-top:4px;">
+            prodigyreview.ph
+          </div>
+        </div>
+        <div class="version-card" style="margin-top:12px;">
+          <div class="vk">Classification</div>
+          <div class="vv" style="font-size:1.1rem;color:var(--red);">INTERNAL</div>
+          <div class="vk" style="margin-top:6px;">Date</div>
+          <div style="font-family:'JetBrains Mono';font-size:0.75rem;margin-top:2px;" id="build-date">—</div>
+        </div>
+        <div class="stamp">DRAFT / NDA</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 2 — WHAT IS SEB
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-2">
+    <div class="corner-brackets"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="bottom:90px;left:-18px;transform:rotate(-90deg);transform-origin:left bottom;">
+      SLIDE 02 / OVERVIEW
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label">§ 01 — Overview</span>
+        <h2>What Is<br/>SecureExam Browser?</h2>
+        <p style="max-width:540px;">
+          SEB is <em>not</em> a conventional browser. It is a purpose-built
+          kiosk application that locks the machine into a single-purpose
+          exam session. The student cannot escape it through ordinary means.
+        </p>
+
+        <div class="card">
+          <span class="tag">Problem Statement</span>
+          <p style="margin-top:6px;">
+            Online certification exams conducted via standard browsers are trivially
+            cheatable. Tab-switching, screenshot tools, AI chat tabs, and clipboard
+            abuse defeat honour-system policies within minutes. A policy is not
+            an enforcement mechanism.
+          </p>
+        </div>
+
+        <div class="card overlap-up">
+          <span class="tag">What SEB Does Instead</span>
+          <ul style="margin-top:8px;">
+            <li>Forces kiosk-mode fullscreen — no chrome, no title bar</li>
+            <li>Intercepts and discards system-level hotkeys before the OS sees them</li>
+            <li>Blocks all known AI assistant domains at the network layer</li>
+            <li>Renders the window black in screenshots and screen recordings</li>
+            <li>Clears the system clipboard on session exit</li>
+            <li>Logs every suspicious event to a tamper-resistant audit file</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-30">
+        <span class="meta-label" style="background:var(--navy);color:var(--yellow);">Key Constraint</span>
+        <div class="card" style="margin-top:8px;">
+          <p style="font-size:0.8rem;font-weight:700;color:var(--red);">
+            "No student input required to enforce security."
+          </p>
+          <p style="margin-top:8px;font-size:0.75rem;">
+            The system operates at the OS and network level — student
+            cooperation is not assumed.
+          </p>
+        </div>
+
+        <div class="divider" style="margin-top:16px;"></div>
+
+        <div class="card" style="margin-top:16px;">
+          <span class="tag">App Flow</span>
+          <ul style="margin-top:8px;font-size:0.72rem;">
+            <li>First run → Admin setup</li>
+            <li>Configured → Kiosk exam</li>
+            <li>Ctrl+Shift+Alt+Q → Admin access</li>
+            <li>Exit → Password verify → cleanup</li>
+          </ul>
+        </div>
+
+        <div style="margin-top:auto;padding-top:24px;">
+          <span style="font-family:'JetBrains Mono';font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;opacity:0.5;">
+            Ref: electron/src/main/index.js:1–9
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 3 — ARCHITECTURE
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-3">
+    <div class="corner-brackets" style="--black:rgba(255,255,255,0.4);"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="bottom:90px;right:8px;transform:rotate(90deg);transform-origin:right bottom;color:rgba(255,255,255,0.3);">
+      SLIDE 03 / ARCHITECTURE
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label" style="background:var(--yellow);color:var(--black);">§ 02 — Architecture</span>
+        <h2 style="color:var(--yellow);">System Architecture</h2>
+
+        <div class="code-block">┌─────────────────────────────────────────────────┐
+│  MAIN PROCESS (Node.js + Electron)              │
+│  ┌──────────┐ ┌──────────┐ ┌────────────────┐  │
+│  │ config   │ │ lockdown │ │  urlFilter     │  │
+│  │ .js      │ │ .js      │ │  .js           │  │
+│  └──────────┘ └──────────┘ └────────────────┘  │
+│  ┌────────────┐ ┌──────────┐                    │
+│  │ screenGuard│ │ auditLog │                    │
+│  │ .js        │ │ .js      │                    │
+│  └────────────┘ └──────────┘                    │
+└──────────────────────┬──────────────────────────┘
+                       │ IPC (contextIsolation)
+              ┌────────▼──────────┐
+              │  RENDERER PROCESS │
+              │  browser.html     │
+              │  + preload.js     │
+              └───────────────────┘</div>
+
+        <div class="card overlap-up" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.2);">
+          <span class="tag">Process Isolation</span>
+          <p style="margin-top:6px;color:var(--surface);">
+            Each module is a separate Node.js file loaded exclusively in the main process.
+            The renderer communicates via Electron IPC — no raw Node access from the
+            webpage context. <code style="color:var(--yellow);">contextIsolation: true</code> is enforced.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-30">
+        <span class="meta-label" style="background:var(--yellow);color:var(--black);">Modules</span>
+
+        <div class="card" style="margin-top:8px;">
+          <div style="font-family:'JetBrains Mono';font-size:0.62rem;color:var(--yellow);letter-spacing:0.1em;text-transform:uppercase;">config.js</div>
+          <p style="font-size:0.72rem;color:var(--surface);margin-top:4px;">JSON persistence. SHA-256 hashing with 16-byte random salt.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-family:'JetBrains Mono';font-size:0.62rem;color:var(--yellow);letter-spacing:0.1em;text-transform:uppercase;">lockdown.js</div>
+          <p style="font-size:0.72rem;color:var(--surface);margin-top:4px;">~40 global shortcuts blocked. Registry edits. Input barrier.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-family:'JetBrains Mono';font-size:0.62rem;color:var(--yellow);letter-spacing:0.1em;text-transform:uppercase;">urlFilter.js</div>
+          <p style="font-size:0.72rem;color:var(--surface);margin-top:4px;">Network-layer AI domain block. 25+ built-in. Admin-extensible.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-family:'JetBrains Mono';font-size:0.62rem;color:var(--yellow);letter-spacing:0.1em;text-transform:uppercase;">screenGuard.js</div>
+          <p style="font-size:0.72rem;color:var(--surface);margin-top:4px;"><code style="color:var(--yellow);font-size:0.65rem;">SetWindowDisplayAffinity</code> → black in capture.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-family:'JetBrains Mono';font-size:0.62rem;color:var(--yellow);letter-spacing:0.1em;text-transform:uppercase;">auditLog.js</div>
+          <p style="font-size:0.72rem;color:var(--surface);margin-top:4px;">Append-only JSONL event log. Every blocked action recorded.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 4 — LOCKDOWN SYSTEM
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-4">
+    <div class="corner-brackets"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="bottom:90px;left:-18px;transform:rotate(-90deg);transform-origin:left bottom;">
+      SLIDE 04 / LOCKDOWN
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label">§ 03 — Keyboard Lockdown</span>
+        <h2>The Lockdown<br/>System</h2>
+        <p style="max-width:520px;">
+          <code>lockdown.js</code> registers ~40 system shortcuts through Electron's
+          <code>globalShortcut</code> API — intercepting keystrokes before any
+          other application or OS layer acts on them.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+          <div class="card">
+            <span class="tag">System Escape Vectors</span>
+            <ul style="margin-top:8px;font-size:0.72rem;">
+              <li>Alt+Tab / Alt+Shift+Tab</li>
+              <li>Alt+F4</li>
+              <li>Ctrl+Alt+Delete</li>
+              <li>Ctrl+Shift+Escape</li>
+              <li>Win+D / Win+L / Win+R</li>
+              <li>Win+C (Copilot)</li>
+              <li>Win+G (Xbox Game Bar)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag">Screenshot / DevTools</span>
+            <ul style="margin-top:8px;font-size:0.72rem;">
+              <li>PrintScreen</li>
+              <li>Alt+PrintScreen</li>
+              <li>Win+Shift+S (Snipping)</li>
+              <li>F12 (DevTools)</li>
+              <li>Ctrl+Shift+I / J / C</li>
+              <li>Ctrl+U (View Source)</li>
+              <li>Ctrl+F / F3 (Find)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card overlap-up" style="border-color:var(--red);border-width:3px;">
+          <span class="tag" style="background:var(--red);color:var(--surface);border-color:var(--red);">Registry Enforcement (Windows)</span>
+          <p style="margin-top:6px;font-size:0.75rem;">
+            SEB writes registry keys to <code style="color:var(--red);">HKCU\...\Policies\System</code>
+            to disable Task Manager at the OS level — beyond what <code>globalShortcut</code> can cover.
+            Taskbar is hidden via <code>StuckRects3</code>. All restored cleanly on exit.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-30">
+        <span class="meta-label" style="background:var(--surface);color:var(--black);">Two-Layer Defense</span>
+
+        <div class="card" style="margin-top:8px;">
+          <p style="font-size:0.72rem;font-weight:700;">Layer 1 — Global Intercept</p>
+          <p style="font-size:0.7rem;margin-top:4px;">
+            <code>globalShortcut.register()</code> claims the hotkey OS-wide.
+            No other window receives it.
+          </p>
+        </div>
+
+        <div class="card" style="margin-top:8px;">
+          <p style="font-size:0.72rem;font-weight:700;">Layer 2 — Input Barrier</p>
+          <p style="font-size:0.7rem;margin-top:4px;">
+            <code>webContents.on('before-input-event')</code>
+            catches survivors and calls <code>event.preventDefault()</code>.
+          </p>
+        </div>
+
+        <div class="divider" style="margin-top:16px;background:rgba(0,0,0,0.2);"></div>
+
+        <div style="margin-top:16px;">
+          <span class="stat-num" style="color:var(--surface);">~40</span>
+          <span class="stat-label" style="color:rgba(255,255,255,0.7);">Hotkeys blocked globally</span>
+        </div>
+        <div style="margin-top:12px;">
+          <span class="stat-num" style="color:var(--surface);">3</span>
+          <span class="stat-label" style="color:rgba(255,255,255,0.7);">Registry keys modified</span>
+        </div>
+
+        <div style="margin-top:auto;padding-top:24px;">
+          <span style="font-family:'JetBrains Mono';font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.4);">
+            Ref: lockdown.js:13–68
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 5 — AI DOMAIN BLOCKING
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-5">
+    <div class="corner-brackets"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="top:28%;right:12px;transform:rotate(90deg);transform-origin:right center;">
+      SLIDE 05 / AI BLOCKING
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label">§ 04 — Network Enforcement</span>
+        <h2>AI Domain<br/>Blocking</h2>
+        <p style="max-width:540px;">
+          <code>urlFilter.js</code> enforces a deny-list at Electron's session layer.
+          All URLs are allowed by default; only AI assistant domains are blocked —
+          including all subdomains.
+        </p>
+
+        <div class="code-block" style="margin-top:8px;font-size:0.68rem;">// urlFilter.js — built-in block list (excerpt)
+const BUILTIN_AI_DOMAINS = [
+  'openai.com',       'chatgpt.com',
+  'gemini.google.com','bard.google.com',
+  'copilot.microsoft.com',
+  'claude.ai',        'anthropic.com',
+  'perplexity.ai',    'meta.ai',
+  'deepseek.com',     'grok.com',
+  'mistral.ai',       'huggingface.co',
+  'poe.com',          'you.com',
+  // + 10 more built-in, admin-extensible
+];</div>
+
+        <div class="card overlap-up">
+          <span class="tag">Subdomain Coverage</span>
+          <p style="margin-top:6px;font-size:0.75rem;">
+            Blocking <code>openai.com</code> also blocks <code>api.openai.com</code>,
+            <code>platform.openai.com</code>, and every other subdomain — matched by
+            suffix. Admin-added domains follow the same rule.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-30" style="gap:14px;">
+        <span class="meta-label" style="background:var(--navy);color:var(--yellow);">Block Strategy</span>
+
+        <div class="card" style="margin-top:4px;">
+          <span class="tag">Default-Allow Model</span>
+          <ul style="margin-top:8px;font-size:0.72rem;">
+            <li>Facebook ✓ allowed</li>
+            <li>YouTube ✓ allowed</li>
+            <li>Search engines ✓ allowed</li>
+            <li>ChatGPT ✗ blocked</li>
+            <li>Claude ✗ blocked</li>
+            <li>Gemini ✗ blocked</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="tag">Admin Extension</span>
+          <p style="font-size:0.72rem;margin-top:6px;">
+            <code>blockedAiDomains[]</code> in config. Custom domains merged at runtime.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="tag">New Window Policy</span>
+          <p style="font-size:0.72rem;margin-top:6px;">
+            All <code>new-window</code> events denied. Popups open in same tab. Zero popup escape vectors.
+          </p>
+        </div>
+
+        <div style="margin-top:auto;padding-top:20px;">
+          <span class="stat-num">25+</span>
+          <span class="stat-label">Built-in AI domains blocked</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 6 — SCREEN GUARD
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-6">
+    <div class="corner-brackets" style="--black:rgba(255,255,255,0.4);"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="bottom:90px;left:8px;transform:rotate(-90deg);transform-origin:left bottom;color:rgba(255,255,255,0.3);">
+      SLIDE 06 / SCREEN GUARD
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label" style="background:var(--yellow);color:var(--black);">§ 05 — Visual Security</span>
+        <h2 style="color:var(--yellow);">Screen Guard &amp;<br/>Clipboard Control</h2>
+        <p style="max-width:540px;">
+          <code>screenGuard.js</code> calls Electron's <code>setContentProtection(true)</code>,
+          which maps to <code>SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)</code> on Windows
+          and <code>CGWindowListSetWindowProperty</code> on macOS. The exam window renders as solid
+          black in any screenshot or screen recording.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+          <div class="card" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.2);">
+            <span class="tag" style="border-color:var(--yellow);color:var(--yellow);">Screen Capture Block</span>
+            <ul style="margin-top:8px;font-size:0.72rem;color:var(--surface);">
+              <li>Win+PrintScreen → black</li>
+              <li>Snipping Tool → black</li>
+              <li>OBS / screen recorder → black</li>
+              <li>Shortcut also blocked at Layer 1</li>
+            </ul>
+          </div>
+          <div class="card" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.2);">
+            <span class="tag" style="border-color:var(--yellow);color:var(--yellow);">Clipboard Policy</span>
+            <ul style="margin-top:8px;font-size:0.72rem;color:var(--surface);">
+              <li>Copy/paste disabled in-session</li>
+              <li>Clipboard wiped on exit</li>
+              <li>Right-click context menu blocked</li>
+              <li>Audit event logged on clear</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card overlap-up" style="background:rgba(255,255,255,0.06);border-color:var(--yellow);">
+          <span class="tag" style="border-color:var(--yellow);color:var(--yellow);">Clipboard Poison (Advanced)</span>
+          <p style="margin-top:6px;color:var(--surface);font-size:0.75rem;">
+            The clipboard is actively written with noise before wipe — preventing
+            paste-before-clear attacks where a student copies exam content a fraction
+            of a second before exit triggers.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-30">
+        <span class="meta-label" style="background:var(--yellow);color:var(--black);">Win32 API Layer</span>
+
+        <div class="card" style="margin-top:8px;">
+          <p style="font-size:0.7rem;font-weight:700;color:var(--yellow);">SetWindowDisplayAffinity</p>
+          <p style="font-size:0.68rem;color:var(--surface);margin-top:4px;">
+            Called with <code style="color:var(--yellow);">WDA_EXCLUDEFROMCAPTURE</code>.
+            OS compositor excludes the window from any capture API — BitBlt, DWM, Game Bar.
+          </p>
+        </div>
+
+        <div class="card">
+          <p style="font-size:0.7rem;font-weight:700;color:var(--yellow);">Clipboard Wipe on Exit</p>
+          <p style="font-size:0.68rem;color:var(--surface);margin-top:4px;">
+            <code style="color:var(--yellow);">clearClipboardOnExit</code> triggers
+            <code style="color:var(--yellow);">clipboard.clear()</code> in the
+            <code>before-quit</code> Electron lifecycle hook.
+          </p>
+        </div>
+
+        <div style="margin-top:auto;padding-top:20px;">
+          <span class="stat-num" style="color:var(--yellow);">0</span>
+          <span class="stat-label" style="color:rgba(255,255,255,0.6);">Pixels leaked to capture</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 7 — ADMIN PANEL
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-7">
+    <div class="corner-brackets"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="top:30%;right:12px;transform:rotate(90deg);transform-origin:right center;">
+      SLIDE 07 / ADMIN
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label">§ 06 — Administration</span>
+        <h2>Admin Panel &amp;<br/>Configuration</h2>
+        <p style="max-width:540px;">
+          A separate Electron window (<code>admin.html</code>) handles all runtime
+          configuration. Access requires the admin password — salted SHA-256 stored in
+          <code>seb-config.json</code>. On first run, setup is forced before the exam window opens.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+          <div class="card">
+            <span class="tag">Configurable Options</span>
+            <ul style="margin-top:8px;font-size:0.72rem;">
+              <li>Block keyboard shortcuts</li>
+              <li>Block screen capture</li>
+              <li>Block copy/paste</li>
+              <li>Block right-click</li>
+              <li>Clear clipboard on exit</li>
+              <li>Block AI API backends</li>
+              <li>Block AI streaming</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag">Access Control</span>
+            <ul style="margin-top:8px;font-size:0.72rem;">
+              <li>Admin password (SHA-256 + salt)</li>
+              <li>Exit password (SHA-256 + salt)</li>
+              <li>Secret: Ctrl+Shift+Alt+Q</li>
+              <li>First-run wizard enforced</li>
+              <li>Config stored in userData</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card overlap-up">
+          <span class="tag">Password Storage</span>
+          <div class="code-block" style="margin-top:8px;padding:10px 14px;font-size:0.68rem;">// config.js — password hashing
+function _hash(salt, password) {
+  return crypto
+    .createHash('sha256')
+    .update(salt + password)
+    .digest('hex');
+}
+// Salt: crypto.randomBytes(16).toString('hex')</div>
+        </div>
+      </div>
+
+      <div class="col-30">
+        <span class="meta-label" style="background:var(--yellow);color:var(--black);">Security Notes</span>
+
+        <div class="card" style="margin-top:8px;">
+          <p style="font-size:0.72rem;font-weight:700;">No plaintext passwords</p>
+          <p style="font-size:0.7rem;margin-top:4px;">
+            Passwords are hashed before write. The JSON config never contains a recoverable secret.
+          </p>
+        </div>
+
+        <div class="card">
+          <p style="font-size:0.72rem;font-weight:700;">No remote auth dependency</p>
+          <p style="font-size:0.7rem;margin-top:4px;">
+            Auth is fully local. No network call is made — offline environments are supported.
+          </p>
+        </div>
+
+        <div class="card" style="border-color:var(--red);">
+          <p style="font-size:0.72rem;font-weight:700;color:var(--red);">Caution</p>
+          <p style="font-size:0.7rem;margin-top:4px;">
+            If <code>adminPasswordHash</code> is empty, the system grants access.
+            First-run enforcement is the guard against this.
+          </p>
+        </div>
+
+        <div style="margin-top:auto;padding-top:20px;">
+          <span style="font-family:'JetBrains Mono';font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);">
+            Ref: config.js:86–113
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 8 — AUDIT LOG
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-8">
+    <div class="corner-brackets"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="bottom:90px;right:12px;transform:rotate(90deg);transform-origin:right bottom;">
+      SLIDE 08 / AUDIT TRAIL
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label">§ 07 — Evidence Trail</span>
+        <h2>Audit Log</h2>
+        <p style="max-width:540px;">
+          Every security event is written to an append-only JSONL file in
+          the Electron <code>userData</code> directory. The log survives the session
+          and cannot be cleared through the normal exam flow.
+        </p>
+
+        <div class="code-block" style="font-size:0.68rem;margin-top:8px;">// Sample audit entries (JSONL format)
+{"ts":"2026-07-04T08:12:01Z","event":"SESSION_START","pid":4821}
+{"ts":"2026-07-04T08:12:44Z","event":"SHORTCUT_BLOCKED","shortcut":"Alt+Tab"}
+{"ts":"2026-07-04T08:14:11Z","event":"URL_BLOCKED","url":"https://chatgpt.com/"}
+{"ts":"2026-07-04T08:14:33Z","event":"SHORTCUT_BLOCKED","shortcut":"F12"}
+{"ts":"2026-07-04T08:15:02Z","event":"URL_BLOCKED","url":"https://claude.ai/"}
+{"ts":"2026-07-04T08:22:17Z","event":"CLIPBOARD_CLEARED"}
+{"ts":"2026-07-04T08:22:19Z","event":"SESSION_END"}</div>
+
+        <div class="card overlap-up">
+          <span class="tag">Logged Event Types</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <span class="meta-label" style="background:var(--navy);">SESSION_START</span>
+            <span class="meta-label" style="background:var(--navy);">SESSION_END</span>
+            <span class="meta-label" style="background:var(--red);">SHORTCUT_BLOCKED</span>
+            <span class="meta-label" style="background:var(--red);">URL_BLOCKED</span>
+            <span class="meta-label" style="background:var(--navy);">CLIPBOARD_CLEARED</span>
+            <span class="meta-label" style="background:var(--navy);">ADMIN_ACCESS</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-30" style="gap:14px;">
+        <span class="meta-label" style="background:var(--navy);color:var(--yellow);">Log Properties</span>
+
+        <div class="card" style="margin-top:4px;">
+          <span class="tag">Append-Only</span>
+          <p style="font-size:0.72rem;margin-top:6px;">
+            Entries appended with <code>fs.appendFileSync</code>. No rotation. No truncation.
+            History persists across sessions.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="tag">ISO 8601 Timestamps</span>
+          <p style="font-size:0.72rem;margin-top:6px;">
+            UTC timestamps from <code>new Date().toISOString()</code> —
+            directly correlatable with server-side exam timestamps.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="tag">JSONL Format</span>
+          <p style="font-size:0.72rem;margin-top:6px;">
+            One JSON object per line. Parseable with <code>jq</code>, Python,
+            or any log aggregator without special tooling.
+          </p>
+        </div>
+
+        <div style="margin-top:auto;padding-top:20px;">
+          <span class="stat-num">6+</span>
+          <span class="stat-label">Distinct event types logged</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 9 — PLATFORM COVERAGE
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-9">
+    <div class="corner-brackets"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="bottom:90px;left:-18px;transform:rotate(-90deg);transform-origin:left bottom;">
+      SLIDE 09 / PLATFORMS
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label">§ 08 — Platform Coverage</span>
+        <h2>Multi-Platform<br/>Deployment</h2>
+        <p style="max-width:540px;">
+          Three distinct deployment targets, each matching a different institutional context.
+          Feature parity is honest — not aspirational.
+        </p>
+
+        <div class="card" style="padding:0;overflow:hidden;margin-top:8px;">
+          <table style="width:100%;border-collapse:collapse;font-family:'JetBrains Mono';font-size:0.7rem;">
+            <thead>
+              <tr style="background:var(--navy);color:var(--yellow);">
+                <th style="padding:8px 12px;text-align:left;border-right:2px solid var(--black);">Feature</th>
+                <th style="padding:8px 12px;text-align:center;border-right:2px solid var(--black);">Electron (Win)</th>
+                <th style="padding:8px 12px;text-align:center;border-right:2px solid var(--black);">Android</th>
+                <th style="padding:8px 12px;text-align:center;">PWA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-top:2px solid var(--black);">
+                <td style="padding:7px 12px;border-right:2px solid var(--black);">Kiosk fullscreen</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);color:var(--red);font-weight:700;">✓ hard</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);color:var(--red);font-weight:700;">✓ hard</td>
+                <td style="padding:7px 12px;text-align:center;">~ soft</td>
+              </tr>
+              <tr style="border-top:2px solid var(--black);background:rgba(0,0,0,0.04);">
+                <td style="padding:7px 12px;border-right:2px solid var(--black);">Hotkey block</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);color:var(--red);font-weight:700;">✓ global</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);">partial</td>
+                <td style="padding:7px 12px;text-align:center;">none</td>
+              </tr>
+              <tr style="border-top:2px solid var(--black);">
+                <td style="padding:7px 12px;border-right:2px solid var(--black);">AI domain block</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);color:var(--red);font-weight:700;">✓ network</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);">WebView</td>
+                <td style="padding:7px 12px;text-align:center;">SW cache</td>
+              </tr>
+              <tr style="border-top:2px solid var(--black);background:rgba(0,0,0,0.04);">
+                <td style="padding:7px 12px;border-right:2px solid var(--black);">Screen protection</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);color:var(--red);font-weight:700;">✓ OS API</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);">FLAG_SECURE</td>
+                <td style="padding:7px 12px;text-align:center;">none</td>
+              </tr>
+              <tr style="border-top:2px solid var(--black);">
+                <td style="padding:7px 12px;border-right:2px solid var(--black);">Audit log</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);color:var(--red);font-weight:700;">✓ disk</td>
+                <td style="padding:7px 12px;text-align:center;border-right:2px solid var(--black);">logcat</td>
+                <td style="padding:7px 12px;text-align:center;">none</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card overlap-up">
+          <p style="font-size:0.75rem;">
+            <span class="danger">PWA is the weakest link.</span>
+            It relies on browser-native fullscreen and Service Worker URL interception —
+            both bypassable by opening another tab or using a different browser.
+            Appropriate only for low-stakes scenarios or MDM-managed device pools.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-30" style="gap:14px;">
+        <span class="meta-label" style="background:var(--navy);color:var(--yellow);">Android Specifics</span>
+
+        <div class="card" style="margin-top:8px;">
+          <span class="tag">Kiosk Mode</span>
+          <p style="font-size:0.72rem;margin-top:6px;">
+            <code>FLAG_FULLSCREEN</code> + <code>SYSTEM_UI_FLAG_HIDE_NAVIGATION</code>.
+            Back button and recents button intercepted.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="tag">Screen Security</span>
+          <p style="font-size:0.72rem;margin-top:6px;">
+            <code>FLAG_SECURE</code> on the window. Screenshots show black — equivalent
+            to Electron's content protection.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="tag">PWA Anti-Cheat</span>
+          <p style="font-size:0.72rem;margin-top:6px;">
+            Service Worker intercepts navigation. Visibility API triggers warnings on
+            tab-switch. Policy-enforced, not technically enforced.
+          </p>
+        </div>
+
+        <div style="margin-top:auto;padding-top:20px;">
+          <span class="stat-num">3</span>
+          <span class="stat-label">Deployment targets</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       SLIDE 10 — CLOSING
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="slide-10">
+    <div class="corner-brackets" style="--black:rgba(255,255,255,0.4);"><span class="cb-br"></span><span class="cb-bl"></span></div>
+    <div class="rotated-text" style="top:28%;right:12px;transform:rotate(90deg);transform-origin:right center;color:rgba(255,255,255,0.3);">
+      SLIDE 10 / SUMMARY
+    </div>
+
+    <div class="slide-inner">
+      <div class="col-70">
+        <span class="meta-label" style="background:var(--yellow);color:var(--black);">§ 09 — Summary</span>
+        <h2 style="color:var(--yellow);">What This System<br/>Actually Does</h2>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px;">
+          <div class="card" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.2);">
+            <p style="color:var(--yellow);font-weight:700;font-size:0.78rem;margin-bottom:6px;">✓ Enforced</p>
+            <ul style="font-size:0.7rem;color:var(--surface);">
+              <li>Kiosk-mode fullscreen lock</li>
+              <li>~40 global hotkeys blocked</li>
+              <li>25+ AI domains blocked</li>
+              <li>Screen capture → black</li>
+              <li>Clipboard cleared on exit</li>
+              <li>Registry-level Task Mgr disable</li>
+              <li>Full audit trail on disk</li>
+            </ul>
+          </div>
+          <div class="card" style="background:rgba(255,255,255,0.06);border-color:var(--red);">
+            <p style="color:var(--red);font-weight:700;font-size:0.78rem;margin-bottom:6px;">⚠ Known Gaps</p>
+            <ul style="font-size:0.7rem;color:var(--surface);">
+              <li>External phone camera not blocked</li>
+              <li>PWA enforcement is weak</li>
+              <li>Admin bypass via registry edit</li>
+              <li>No biometric identity verification</li>
+              <li>No network traffic monitoring</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card overlap-up" style="background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.2);">
+          <p style="color:var(--surface);font-size:0.8rem;">
+            SEB is a <span style="color:var(--yellow);font-weight:700;">technical enforcement layer</span>,
+            not a complete proctoring solution. It raises the effort required to cheat by an order
+            of magnitude — it does not eliminate the possibility. Pair with randomised question pools,
+            time limits, and physical supervision for maximum effect.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-30">
+        <span class="meta-label" style="background:var(--yellow);color:var(--black);">Quick Reference</span>
+
+        <div class="card" style="margin-top:8px;">
+          <p style="font-size:0.68rem;font-weight:700;color:var(--surface);">Config file</p>
+          <code style="font-size:0.6rem;color:var(--yellow);display:block;margin-top:2px;word-break:break-all;">%AppData%\SecureExamBrowser\seb-config.json</code>
+        </div>
+
+        <div class="card">
+          <p style="font-size:0.68rem;font-weight:700;color:var(--surface);">Admin access</p>
+          <code style="font-size:0.62rem;color:var(--yellow);display:block;margin-top:2px;">Ctrl + Shift + Alt + Q</code>
+        </div>
+
+        <div class="card">
+          <p style="font-size:0.68rem;font-weight:700;color:var(--surface);">Audit log</p>
+          <code style="font-size:0.6rem;color:var(--yellow);display:block;margin-top:2px;word-break:break-all;">%AppData%\SecureExamBrowser\audit.jsonl</code>
+        </div>
+
+        <div class="card">
+          <p style="font-size:0.68rem;font-weight:700;color:var(--surface);">Admin panel flag</p>
+          <code style="font-size:0.62rem;color:var(--yellow);display:block;margin-top:2px;">SecureExam.exe --admin</code>
+        </div>
+
+        <div style="margin-top:auto;padding-top:20px;">
+          <span style="font-family:'JetBrains Mono';font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);">
+            END OF BRIEFING — SYMPHONICS CO. LTD.
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Navigation bar -->
+<div id="nav">
+  <span class="meta-label" style="font-size:0.58rem;">SEB BRIEFING</span>
+  <button id="btn-prev" disabled onclick="navigate(-1)">&#8592; PREV</button>
+  <span id="slide-counter">01 / 10</span>
+  <button id="btn-next" onclick="navigate(1)">NEXT &#8594;</button>
+  <button class="red" onclick="toggleFullscreen()">&#x26F6; FS</button>
+</div>
+
+<script>
+  // Set dynamic build date
+  document.getElementById('build-date').textContent =
+    new Date().toISOString().slice(0, 10);
+
+  const slides  = document.querySelectorAll('.slide');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  const counter = document.getElementById('slide-counter');
+  const bar     = document.getElementById('progress-bar');
+  let current   = 0;
+  const total   = slides.length;
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateUI() {
+    counter.textContent = pad(current + 1) + ' / ' + pad(total);
+    btnPrev.disabled = current === 0;
+    btnNext.disabled = current === total - 1;
+    bar.style.width  = ((current + 1) / total * 100) + '%';
+  }
+
+  function navigate(dir) {
+    const next = current + dir;
+    if (next < 0 || next >= total) return;
+    slides[current].classList.remove('active');
+    current = next;
+    slides[current].classList.add('active');
+    updateUI();
+  }
+
+  function goTo(index) {
+    if (index < 0 || index >= total || index === current) return;
+    slides[current].classList.remove('active');
+    current = index;
+    slides[current].classList.add('active');
+    updateUI();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'ArrowDown', ' '].includes(e.key)) { e.preventDefault(); navigate(1); }
+    if (['ArrowLeft',  'ArrowUp'       ].includes(e.key)) { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End')  goTo(total - 1);
+  });
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen();
+    }
+  }
+
+  updateUI();
+</script>
+</body>
+</html>

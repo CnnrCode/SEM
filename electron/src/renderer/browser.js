@@ -40,6 +40,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   config = await window.sebBrowser.getConfig();
   examPreloadPath = await window.sebBrowser.getExamPreloadPath();
 
+  // Initialize theme switcher engine
+  initThemes();
+
+  // Initialize secure downloads tab controller
+  initDownloadsTab();
+
   // Adjust tabs-bar padding for native title bar overlays (frameless window controls)
   const platform = navigator.platform.toLowerCase();
   const isWin = platform.includes('win');
@@ -191,6 +197,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeTab(activeTabId);
       }
     }
+    // Ctrl + J -> Open Downloads Tab
+    if (e.ctrlKey && e.key.toLowerCase() === 'j') {
+      e.preventDefault();
+      openDownloadsTab();
+    }
     // Ctrl + R or F5 -> Refresh Active Tab
     if ((e.ctrlKey && e.key.toLowerCase() === 'r') || e.key === 'F5') {
       e.preventDefault();
@@ -307,7 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (mDownloads) {
       mDownloads.addEventListener('click', () => {
         menuDropdown.classList.add('hidden');
-        showToast('SecureExam Browser protects downloads. All downloaded exam files are saved directly in your Windows downloads folder.', 'info');
+        openDownloadsTab();
       });
     }
 
@@ -391,24 +402,31 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
     ${canClose ? `<span class="tab-close" id="tab-close-${id}">✕</span>` : ''}
   `;
 
-  // Create Webview Element
-  const webview = document.createElement('webview');
-  webview.id = `webview-${id}`;
-  webview.setAttribute('src', url);
-  // Ensure preload is injected
-  if (examPreloadPath) {
-    webview.setAttribute('preload', examPreloadPath);
+  let webview;
+  if (url === 'seb://downloads') {
+    webview = document.getElementById('downloads-view');
+    webviewsContainer.appendChild(webview);
+  } else {
+    // Create Webview Element
+    webview = document.createElement('webview');
+    webview.id = `webview-${id}`;
+    webview.setAttribute('src', url);
+    // Ensure preload is injected
+    if (examPreloadPath) {
+      webview.setAttribute('preload', examPreloadPath);
+    }
+    
+    // Set safety attributes
+    webview.setAttribute('nodeintegration', 'false');
+    webview.setAttribute('contextisolation', 'true');
+    webview.setAttribute('plugins', 'true');
+    webview.className = 'hidden';
+    
+    // Add elements to DOM
+    webviewsContainer.appendChild(webview);
   }
-  
-  // Set safety attributes
-  webview.setAttribute('nodeintegration', 'false');
-  webview.setAttribute('contextisolation', 'true');
-  webview.setAttribute('plugins', 'true');
-  webview.className = 'hidden';
 
-  // Add elements to DOM
   tabsContainer.appendChild(tabEl);
-  webviewsContainer.appendChild(webview);
 
   const tabObj = {
     id,
@@ -447,7 +465,9 @@ function createTab(url, canClose = true, customTitle = 'Loading...') {
   }
 
   // Webview Event Listeners
-  setupWebviewEvents(tabObj);
+  if (url !== 'seb://downloads') {
+    setupWebviewEvents(tabObj);
+  }
 
   // Switch to new tab
   switchTab(id);
@@ -493,7 +513,12 @@ function closeTab(id) {
 
   // Remove elements from DOM
   tab.tabElement.remove();
-  tab.webviewElement.remove();
+  if (tab.url === 'seb://downloads') {
+    tab.webviewElement.classList.add('hidden');
+    document.body.appendChild(tab.webviewElement);
+  } else {
+    tab.webviewElement.remove();
+  }
 
   tabs.splice(tabIndex, 1);
 
@@ -632,6 +657,15 @@ function setupWebviewEvents(tab) {
       if (badge) badge.textContent = `${magnifierScale.toFixed(1)}x`;
       
       refreshMagnifierSnapshot();
+    } else if (e.channel === 'guest-click') {
+      const menuDropdown = document.getElementById('menu-dropdown');
+      if (menuDropdown && !menuDropdown.classList.contains('hidden')) {
+        menuDropdown.classList.add('hidden');
+      }
+      const zoomPopover = document.getElementById('zoom-popover');
+      if (zoomPopover && !zoomPopover.classList.contains('hidden')) {
+        zoomPopover.classList.add('hidden');
+      }
     }
   });
 }
@@ -953,3 +987,208 @@ async function refreshMagnifierSnapshot() {
     console.error('[Browser] Magnifier capture failed:', err);
   }
 }
+
+// ─── Theme Switcher System ──────────────────────────────────────────────────
+
+function initThemes() {
+  const savedTheme = localStorage.getItem('prodigy-theme') || 'dark';
+  applyTheme(savedTheme);
+  
+  // Wire up selectors
+  const themes = ['dark', 'cyberpunk', 'forest', 'sunset', 'light'];
+  themes.forEach(t => {
+    const btn = document.getElementById(`theme-btn-${t}`);
+    if (btn) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        applyTheme(t);
+      });
+    }
+  });
+}
+
+function applyTheme(themeName) {
+  // Clear other themes
+  document.body.className = '';
+  if (themeName !== 'dark') {
+    document.body.classList.add(`theme-${themeName}`);
+  }
+
+  // Save theme choice
+  localStorage.setItem('prodigy-theme', themeName);
+
+  // Update indicator dots active class
+  const dots = document.querySelectorAll('.theme-dot');
+  dots.forEach(dot => dot.classList.remove('active'));
+
+  const activeDot = document.getElementById(`theme-btn-${themeName}`);
+  if (activeDot) {
+    activeDot.classList.add('active');
+  }
+
+  // Sync native Windows title bar overlay (caption buttons) to theme
+  const overlayColors = {
+    dark:      { color: '#0d1127', symbolColor: '#94a3b8' },
+    cyberpunk: { color: '#14092b', symbolColor: '#bd93f9' },
+    forest:    { color: '#0d1a14', symbolColor: '#a3cfbb' },
+    sunset:    { color: '#1b1111', symbolColor: '#fdba74' },
+    light:     { color: '#e2e8f0', symbolColor: '#475569' },
+  };
+
+  const ov = overlayColors[themeName] || overlayColors.dark;
+  if (window.sebBrowser && window.sebBrowser.setTitleBarOverlay) {
+    window.sebBrowser.setTitleBarOverlay(ov).catch(() => {});
+  }
+}
+
+// ─── Downloads Tab Controller ───────────────────────────────────────────────
+
+let localDownloads = [];
+
+function initDownloadsTab() {
+  // Bind search input to filter rendering
+  const searchInput = document.getElementById('downloads-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      renderDownloadsList();
+    });
+  }
+
+  // Listen to incoming download update broadcasts
+  if (window.sebBrowser && window.sebBrowser.onDownloadsUpdated) {
+    window.sebBrowser.onDownloadsUpdated((list) => {
+      localDownloads = list;
+      renderDownloadsList();
+    });
+  }
+
+  // Try to load initial list on start
+  if (window.sebBrowser && window.sebBrowser.getDownloadsList) {
+    window.sebBrowser.getDownloadsList().then((list) => {
+      localDownloads = list || [];
+      renderDownloadsList();
+    }).catch(err => console.error('[Browser] Failed to get initial downloads:', err));
+  }
+}
+
+function openDownloadsTab() {
+  const existing = tabs.find(t => t.url === 'seb://downloads');
+  if (existing) {
+    switchTab(existing.id);
+  } else {
+    createTab('seb://downloads', true, 'Downloads');
+  }
+}
+
+function renderDownloadsList() {
+  const listContainer = document.getElementById('downloads-list');
+  const emptyState = document.getElementById('downloads-empty-state');
+  const searchInput = document.getElementById('downloads-search-input');
+  if (!listContainer || !emptyState) return;
+
+  const filterText = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+  // Filter downloads
+  const filtered = localDownloads.filter(dl => {
+    return dl.filename.toLowerCase().includes(filterText);
+  });
+
+  if (filtered.length === 0) {
+    listContainer.innerHTML = '';
+    emptyState.classList.remove('hidden');
+    return;
+  }
+
+  emptyState.classList.add('hidden');
+  
+  // Map list
+  listContainer.innerHTML = filtered.map(dl => {
+    const isDownloading = dl.status === 'downloading';
+    const isCompleted = dl.status === 'completed';
+    const isCancelled = dl.status === 'cancelled';
+    const isFailed = dl.status === 'failed';
+    const isInterrupted = dl.status === 'interrupted';
+
+    // Format bytes to readable size
+    const formatBytes = (bytes) => {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    };
+
+    const sizeText = formatBytes(dl.totalBytes);
+    const progressPercent = dl.totalBytes > 0 ? Math.round((dl.receivedBytes / dl.totalBytes) * 100) : 0;
+    
+    let statusText = '';
+    if (isDownloading) {
+      statusText = `${formatBytes(dl.receivedBytes)} of ${sizeText} (${progressPercent}%)`;
+    } else if (isCompleted) {
+      statusText = `Completed ${sizeText}`;
+    } else if (isCancelled) {
+      statusText = `Cancelled`;
+    } else if (isInterrupted) {
+      statusText = `Interrupted`;
+    } else {
+      statusText = `Failed`;
+    }
+
+    const startTimeFormatted = new Date(dl.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // File card icons using pure SVG
+    const fileIconSvg = `
+      <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+    `;
+
+    return `
+      <div class="download-card" id="dl-card-${dl.id}">
+        <div class="download-card-icon">
+          ${fileIconSvg}
+        </div>
+        
+        <div class="download-card-info">
+          <div class="download-card-filename" title="${dl.filename}">${dl.filename}</div>
+          <div class="download-card-meta">
+            <span>${statusText}</span>
+            <span class="download-card-meta-dot"></span>
+            <span>${startTimeFormatted}</span>
+          </div>
+          ${isDownloading ? `
+            <div class="download-progress-bar-container">
+              <div class="download-progress-bar" style="width: ${progressPercent}%"></div>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="download-card-actions">
+          ${isCompleted ? `
+            <button class="download-action-btn show-btn" onclick="showItemFolder('${dl.savePath.replace(/\\/g, '\\\\')}')">Show in Folder</button>
+          ` : ''}
+          ${isDownloading ? `
+            <button class="download-action-btn cancel-btn" onclick="cancelDownload('${dl.id}')">Cancel</button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Global window actions for inline onclicks
+window.showItemFolder = (path) => {
+  if (window.sebBrowser && window.sebBrowser.showItemInFolder) {
+    window.sebBrowser.showItemInFolder(path);
+  }
+};
+
+window.cancelDownload = (id) => {
+  if (window.sebBrowser && window.sebBrowser.cancelDownload) {
+    window.sebBrowser.cancelDownload(id);
+  }
+};

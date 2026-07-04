@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prodigy Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="browser.css">
   <script src="browser.js" defer></script>
 </head>
@@ -102,8 +105,20 @@
         </button>
       </div>
       
-      <div class="menu-divider"></div>
+      <!-- Theme Switcher Row -->
+      <div class="menu-theme-row">
+        <span class="menu-theme-label">Theme</span>
+        <div class="theme-dots">
+          <button class="theme-dot active" id="theme-btn-dark" title="Midnight Dark" style="background: #0d1127; border-color: #4f8ef7;"></button>
+          <button class="theme-dot" id="theme-btn-cyberpunk" title="Cyberpunk Neon" style="background: #14092b; border-color: #ff007f;"></button>
+          <button class="theme-dot" id="theme-btn-forest" title="Forest Mint" style="background: #0d1a14; border-color: #10b981;"></button>
+          <button class="theme-dot" id="theme-btn-sunset" title="Sunset Coral" style="background: #1b1111; border-color: #f97316;"></button>
+          <button class="theme-dot" id="theme-btn-light" title="Slate Light" style="background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%); border-color: #64748b;"></button>
+        </div>
+      </div>
       
+      <div class="menu-divider"></div>
+
       <div class="menu-item status-item" id="menu-item-shield">
         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="menu-svg-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
         <span class="menu-item-text">AI Shield Status</span>
@@ -119,6 +134,27 @@
     <!-- Webviews Content Container -->
     <main id="webview-views">
       <!-- Webview tags will be dynamically generated here -->
+      
+      <!-- Unified Local Downloads Tab Panel -->
+      <div id="downloads-view" class="local-tab-view hidden">
+        <div class="downloads-container">
+          <header class="downloads-header">
+            <h2>Downloads</h2>
+            <div class="downloads-search-box">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="downloads-search-input" placeholder="Search downloads" autocomplete="off" spellcheck="false">
+            </div>
+          </header>
+          
+          <div class="downloads-list-wrapper">
+            <div id="downloads-empty-state" class="downloads-empty-state">
+              <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <p>No downloads found</p>
+            </div>
+            <div id="downloads-list" class="downloads-list"></div>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 

@@ -305,3 +305,8 @@ document.addEventListener('scroll', () => {
     }, 200);
   }
 }, true);
+
+// Dismiss host menus/popovers when clicking inside the guest page webview
+document.addEventListener('mousedown', () => {
+  ipcRenderer.sendToHost('guest-click');
+});

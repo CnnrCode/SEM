@@ -423,9 +423,50 @@ ipcMain.handle('browser:toggleFullScreen', () => {
   return false;
 });
 
+// Update native title bar overlay colors (for theme switching)
+ipcMain.handle('browser:setTitleBarOverlay', (_, { color, symbolColor }) => {
+  if (examWindow && !examWindow.isDestroyed() && !examWindow.isFullScreen()) {
+    try {
+      examWindow.setTitleBarOverlay({ color, symbolColor, height: 38 });
+    } catch (e) {
+      // setTitleBarOverlay not supported on this platform — silently ignore
+    }
+  }
+});
+
 // Check if user input is blocked (contains AI)
 ipcMain.handle('browser:checkBlocked', (_, text) => {
   return urlFilter.isInputBlocked(text);
+});
+
+// Retrieve download manager state list
+ipcMain.handle('downloads:getList', () => {
+  return downloadsList;
+});
+
+// Cancel active download
+ipcMain.handle('browser:cancelDownload', (_, id) => {
+  const item = activeDownloads.get(id);
+  if (item) {
+    item.cancel();
+    activeDownloads.delete(id);
+    return true;
+  }
+  return false;
+});
+
+// Reveal file in Explorer
+ipcMain.handle('browser:showItemInFolder', (_, filePath) => {
+  if (filePath) {
+    const { shell } = require('electron');
+    try {
+      shell.showItemInFolder(filePath);
+      return true;
+    } catch (e) {
+      console.error('[Main] showItemInFolder failed:', e);
+    }
+  }
+  return false;
 });
 
 
@@ -469,45 +510,81 @@ ipcMain.on('exam-event', (event, { type, ...data }) => {
 });
 
 // Secure Download Manager
+const activeDownloads = new Map();
+let downloadsList = [];
+
 function setupDownloadHandler() {
   const { session } = require('electron');
   session.defaultSession.on('will-download', (event, item, webContents) => {
     const name = item.getFilename();
     const size = item.getTotalBytes();
-    
+    const downloadId = Date.now().toString();
+
+    // Create tracking object
+    const dlObj = {
+      id: downloadId,
+      filename: name,
+      totalBytes: size,
+      receivedBytes: 0,
+      status: 'downloading',
+      savePath: '',
+      startTime: new Date().toISOString()
+    };
+    downloadsList.unshift(dlObj); // Add to beginning of downloads list
+    activeDownloads.set(downloadId, item);
+
+    // Broadcast updates to the renderer process
+    const broadcastList = () => {
+      if (examWindow && !examWindow.isDestroyed()) {
+        examWindow.webContents.send('browser:downloads-updated', downloadsList);
+      }
+    };
+
     // Log download start
     auditLog.log('DOWNLOAD_STARTED', { filename: name, sizeBytes: size });
     if (examWindow && !examWindow.isDestroyed()) {
       examWindow.webContents.send('browser:show-toast', { message: `Download started: ${name}`, type: 'download' });
     }
-    
+    broadcastList();
+
     // Set default path to User Downloads folder
     item.setSaveDialogOptions({
       defaultPath: path.join(app.getPath('downloads'), name)
     });
-    
+
     item.on('updated', (event, state) => {
       if (state === 'interrupted') {
         auditLog.log('DOWNLOAD_INTERRUPTED', { filename: name });
+        dlObj.status = 'interrupted';
         if (examWindow && !examWindow.isDestroyed()) {
           examWindow.webContents.send('browser:show-toast', { message: `Download interrupted: ${name}`, type: 'download' });
         }
+      } else if (state === 'progressing') {
+        dlObj.receivedBytes = item.getReceivedBytes();
+        dlObj.status = 'downloading';
       }
+      broadcastList();
     });
-    
+
     item.once('done', (event, state) => {
+      activeDownloads.delete(downloadId);
       if (state === 'completed') {
         const savePath = item.getSavePath();
+        dlObj.status = 'completed';
+        dlObj.savePath = savePath;
+        dlObj.receivedBytes = size;
         auditLog.log('DOWNLOAD_COMPLETED', { filename: name, path: savePath });
         if (examWindow && !examWindow.isDestroyed()) {
           examWindow.webContents.send('browser:show-toast', { message: `Download completed successfully: ${name}`, type: 'success' });
         }
       } else {
+        dlObj.status = state === 'cancelled' ? 'cancelled' : 'failed';
         auditLog.log('DOWNLOAD_FAILED', { filename: name, reason: state });
-        if (examWindow && !examWindow.isDestroyed()) {
+        if (examWindow && !examWindow.isDestroyed() && state !== 'cancelled') {
           examWindow.webContents.send('browser:show-toast', { message: `Download failed: ${name} (${state})`, type: 'error' });
         }
       }
+      broadcastList();
     });
   });
 }
