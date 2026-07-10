@@ -59,6 +59,7 @@ const BLOCKED_SHORTCUTS = [
   'Super+C',           // Windows Copilot
   'Super+G',           // Xbox Game Bar
   'Super+Shift+F',     // Copilot sidebar on some builds
+  'Super+P',           // Windows Projection (force closes the app)
 ];
 
 let registered = [];
@@ -73,7 +74,12 @@ function registerAll() {
   for (const shortcut of BLOCKED_SHORTCUTS) {
     try {
       const ok = globalShortcut.register(shortcut, () => {
-        auditLog.log('SHORTCUT_BLOCKED', { shortcut });
+        if (shortcut === 'Super+P') {
+          auditLog.log('VIOLATION_FORCE_CLOSE', { shortcut, reason: 'Display projection attempt (Win+P)' });
+          app.exit(0);
+        } else {
+          auditLog.log('SHORTCUT_BLOCKED', { shortcut });
+        }
       });
       if (ok) {
         registered.push(shortcut);
@@ -163,6 +169,13 @@ function setupInputBarrier(window) {
       if (isMeta && (key === 'c' || key === 'g' || (isShift && key === 'f'))) {
         event.preventDefault();
         auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Super+' + key.toUpperCase() });
+        return;
+      }
+      // Windows + P (Display projection) → force close app
+      if (isMeta && key === 'p') {
+        event.preventDefault();
+        auditLog.log('VIOLATION_FORCE_CLOSE', { shortcut: 'Super+P', reason: 'Display projection attempt (Win+P)' });
+        app.exit(0);
         return;
       }
       // Alt+Tab
