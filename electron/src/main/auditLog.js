@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
+const config = require('./config');
 
 let logDir = null;
 let currentLogFile = null;
@@ -48,6 +49,23 @@ function log(event, data = {}) {
     }
     logs.push(entry);
     fs.writeFileSync(currentLogFile, JSON.stringify(logs, null, 2), 'utf8');
+
+    // Remote Telemetry Streaming
+    const cfg = config.get();
+    if (cfg.remoteServerUrl && cfg.features.remoteTelemetry) {
+      const url = `${cfg.remoteServerUrl.replace(/\/$/, '')}/logs`;
+      const headers = { 'Content-Type': 'application/json' };
+      if (cfg.clientAuthToken) {
+        headers['Authorization'] = `Bearer ${cfg.clientAuthToken}`;
+      }
+      fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(entry),
+      }).catch((err) => {
+        console.error('[AuditLog] Remote log stream failed:', err.message);
+      });
+    }
   } catch (err) {
     console.error('[AuditLog] Failed to write log entry:', err);
   }

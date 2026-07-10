@@ -19,6 +19,10 @@ const DEFAULT_CONFIG = {
   exitPasswordSalt: '',
   adminPasswordHash: '',    // SHA-256 of salt+admin-password
   adminPasswordSalt: '',
+  uiTheme: 'dark',          // Persisted UI theme selection
+  openTabs: [],             // Preserved browser tabs list
+  remoteServerUrl: '',      // Central server management API endpoint
+  clientAuthToken: '',      // Authentication credentials token for this client
   features: {
     blockKeyboardShortcuts: true,
     blockScreenCapture: true,
@@ -28,6 +32,10 @@ const DEFAULT_CONFIG = {
     blockRightClick: true,
     blockAiApiBackends: true,
     blockAiStreaming: true,
+    multiMonitorAction: 'block',
+    syncConfigOnStartup: false,
+    remoteTelemetry: false,
+    clientHeartbeat: false,
   },
   firstRun: true,
 };

@@ -17,20 +17,32 @@ const {
   clipboard,
   Menu,
   MenuItem,
+  session,
+  screen,
 } = require('electron');
 const path = require('path');
+const os = require('os');
+const { exec } = require('child_process');
 
 const config = require('./config');
 const lockdown = require('./lockdown');
 const screenGuard = require('./screenGuard');
 const urlFilter = require('./urlFilter');
 const auditLog = require('./auditLog');
+const history = require('./history');
+const downloads = require('./downloads');
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let examWindow = null;
 let adminWindow = null;
+let splashWindow = null;
 let examMode = false;
+let isExamActiveGlobal = false;
+let isVmDetected = false;
+let blackoutWindows = [];
+let mockMultiMonitor = false;
+let heartbeatInterval = null;
 
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 
@@ -39,6 +51,25 @@ app.whenReady().then(() => {
   auditLog.init();
   urlFilter.init();
   setupDownloadHandler();
+
+  // Set modern desktop Chrome User Agent as the default to ensure site compatibility
+  const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+  const FIREFOX_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:138.0) Gecko/20100101 Firefox/138.0';
+  session.defaultSession.setUserAgent(CHROME_UA);
+
+  // Dynamically rewrite User-Agent header for Google Accounts sign-in to bypass blocks
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['*://*/*'] },
+    (details, callback) => {
+      const url = details.url.toLowerCase();
+      if (url.includes('accounts.google.com')) {
+        details.requestHeaders['User-Agent'] = FIREFOX_UA;
+      } else {
+        details.requestHeaders['User-Agent'] = CHROME_UA;
+      }
+      callback({ cancel: false, requestHeaders: details.requestHeaders });
+    }
+  );
 
   // Create standard Edit menu so standard keyboard shortcuts (Copy, Paste, etc.) work
   const template = [
@@ -63,14 +94,49 @@ app.whenReady().then(() => {
   if (isAdminFlag || config.isFirstRun()) {
     openAdminPanel();
   } else {
-    launchExam();
+    showSplash();
+    const cfg = config.get();
+    if (cfg.remoteServerUrl && cfg.features.syncConfigOnStartup) {
+      syncRemoteConfig().finally(() => {
+        launchExam();
+      });
+    } else {
+      launchExam();
+    }
   }
+
+  ipcMain.on('exam-status-changed', (event, isActive) => {
+    isExamActiveGlobal = isActive;
+  });
+
+  // Handle multi-monitor hotplugging dynamically
+  screen.on('display-added', () => {
+    if (examMode) {
+      handleMultiMonitorChange();
+    }
+  });
+
+  screen.on('display-removed', () => {
+    if (examMode) {
+      handleMultiMonitorChange();
+    }
+  });
 
   // Register the secret admin escape combo (only works if you know it)
   // Ctrl+Shift+Alt+Q → triggers admin password prompt
   globalShortcut.register('Ctrl+Shift+Alt+Q', () => {
     if (examMode) {
       _promptAdminAccess();
+    }
+  });
+
+  // Register developer testing shortcut for simulating multiple monitors
+  // Ctrl+Shift+Alt+M → toggles simulated display hotplug
+  globalShortcut.register('Ctrl+Shift+Alt+M', () => {
+    if (examMode) {
+      mockMultiMonitor = !mockMultiMonitor;
+      console.log(`[Dev] Multi-monitor mock toggled: ${mockMultiMonitor ? 'ON' : 'OFF'}`);
+      handleMultiMonitorChange();
     }
   });
 });
@@ -84,6 +150,7 @@ app.on('before-quit', () => {
   screenGuard.stopSnippingWatchdog();
   screenGuard.stopAiProcessWatchdog();
   screenGuard.stopClipboardWatchdog();
+  closeBlackoutWindows();
   auditLog.log('SESSION_END');
 });
 
@@ -93,6 +160,31 @@ app.on('window-all-closed', () => {
 });
 
 // ─── Exam window ──────────────────────────────────────────────────────────────
+
+function showSplash() {
+  splashWindow = new BrowserWindow({
+    width: 420,
+    height: 260,
+    center: true,
+    frame: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    backgroundColor: '#070913',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  splashWindow.loadFile(path.join(__dirname, '../renderer/splash.html'));
+  splashWindow.once('ready-to-show', () => {
+    splashWindow.show();
+  });
+}
 
 function launchExam() {
   const cfg = config.get();
@@ -108,8 +200,7 @@ function launchExam() {
   const shouldBlockShortcuts = cfg.features.blockKeyboardShortcuts !== false;
 
   examWindow = new BrowserWindow({
-    fullscreen: isFullscreen,
-    kiosk: isFullscreen,
+    show: false, // Create hidden to optimize startup rendering and prevent visual flashes
     alwaysOnTop: isFullscreen || shouldBlockShortcuts,
     // Modern frameless window style (hides standard white OS title bar)
     titleBarStyle: isFullscreen ? 'default' : 'hidden',
@@ -122,12 +213,13 @@ function launchExam() {
     resizable: !isFullscreen,
     movable: true, // Allow moving frameless window via webkit-app-region drag
     minimizable: false,
+    maximizable: !isFullscreen,
     closable: !isFullscreen,
     skipTaskbar: isFullscreen,
     autoHideMenuBar: true,
-    width: isFullscreen ? undefined : 1280,
-    height: isFullscreen ? undefined : 800,
-    center: !isFullscreen,
+    width: 1280,
+    height: 800,
+    center: true,
     backgroundColor: '#0a0e1a',
     icon: path.join(__dirname, '../renderer/prodigy.png'),
     webPreferences: {
@@ -147,11 +239,157 @@ function launchExam() {
     examWindow.setAlwaysOnTop(true, 'screen-saver');
   }
 
+  // Smoothly enter kiosk mode and show the window once first paint is ready
+  examWindow.once('ready-to-show', () => {
+    // Show window first so OS registers visual window context before fullscreen transition
+    examWindow.show();
+    if (isFullscreen) {
+      examWindow.setFullScreen(true);
+      examWindow.setKiosk(true);
+    }
+    examWindow.focus();
+    handleMultiMonitorChange();
+
+    // Destroy the splash window once main window is ready
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.destroy();
+      splashWindow = null;
+    }
+  });
+
   // Attach URL filter
   urlFilter.attach(examWindow.webContents);
 
   // Set up keyboard shortcut input barrier
   lockdown.setupInputBarrier(examWindow);
+
+  // Intercept navigation keys in the main window context (even inside iframes like newtab)
+  examWindow.webContents.on('before-input-event', (inputEvent, input) => {
+    if (input.type !== 'keyDown') return;
+
+    const isControl = input.control;
+    const isShift = input.shift;
+    const isAlt = input.alt;
+    const code = input.code;
+
+    // 1. Reload shortcuts (F5, Ctrl+R, Ctrl+Shift+R, Ctrl+F5)
+    const isF5Reload = (code === 'F5' && !isControl && !isAlt && !isShift);
+    const isCtrlRReload = (isControl && !isAlt && code === 'KeyR');
+    const isCtrlF5Reload = (isControl && code === 'F5');
+
+    if (isF5Reload || isCtrlRReload || isCtrlF5Reload) {
+      inputEvent.preventDefault();
+      if (isExamActiveGlobal) {
+        examWindow.webContents.send('browser:show-toast', { message: 'Reloading is blocked during an active exam.', type: 'error' });
+      } else {
+        const ignoreCache = isShift || isCtrlF5Reload;
+        examWindow.webContents.send('host:reload-shortcut', { ignoreCache });
+      }
+      return;
+    }
+
+    // 2. Ctrl + Tab (Next tab) / Ctrl + Shift + Tab (Prev tab)
+    if (isControl && !isAlt && code === 'Tab') {
+      inputEvent.preventDefault();
+      if (isExamActiveGlobal) {
+        examWindow.webContents.send('browser:show-toast', { message: 'You cannot switch tabs while taking an active exam.', type: 'error' });
+      } else {
+        if (isShift) {
+          examWindow.webContents.send('host:tab-prev-shortcut');
+        } else {
+          examWindow.webContents.send('host:tab-next-shortcut');
+        }
+      }
+      return;
+    }
+
+    if (isControl && !isAlt) {
+      // Tab switching Ctrl+1 to Ctrl+9
+      const match = code.match(/^Digit([1-9])$/);
+      if (match && !isShift) {
+        inputEvent.preventDefault();
+        if (isExamActiveGlobal) {
+          examWindow.webContents.send('browser:show-toast', { message: 'You cannot switch tabs while taking an active exam.', type: 'error' });
+        } else {
+          const digit = parseInt(match[1], 10);
+          examWindow.webContents.send('host:tab-switch-shortcut', { digit });
+        }
+        return;
+      }
+
+      // Ctrl + Shift + T
+      if (isShift && code === 'KeyT') {
+        inputEvent.preventDefault();
+        if (isExamActiveGlobal) {
+          examWindow.webContents.send('browser:show-toast', { message: 'You cannot open new tabs while taking an active exam.', type: 'error' });
+        } else {
+          examWindow.webContents.send('host:tab-reopen-shortcut');
+        }
+        return;
+      }
+
+      // Ctrl + T (New Tab)
+      if (!isShift && code === 'KeyT') {
+        inputEvent.preventDefault();
+        if (isExamActiveGlobal) {
+          examWindow.webContents.send('browser:show-toast', { message: 'You cannot open new tabs while taking an active exam.', type: 'error' });
+        } else {
+          examWindow.webContents.send('host:tab-new-shortcut');
+        }
+        return;
+      }
+
+      // Ctrl + Shift + W (Close all tabs)
+      if (isShift && code === 'KeyW') {
+        inputEvent.preventDefault();
+        if (isExamActiveGlobal) {
+          examWindow.webContents.send('browser:show-toast', { message: 'You cannot close tabs while taking an active exam.', type: 'error' });
+        } else {
+          examWindow.webContents.send('host:tab-close-all-shortcut');
+        }
+        return;
+      }
+
+      // Ctrl + W
+      if (!isShift && code === 'KeyW') {
+        inputEvent.preventDefault();
+        if (isExamActiveGlobal) {
+          examWindow.webContents.send('browser:show-toast', { message: 'You cannot close tabs while taking an active exam.', type: 'error' });
+        } else {
+          examWindow.webContents.send('host:tab-close-shortcut');
+        }
+        return;
+      }
+
+      // Ctrl + E (Focus Search)
+      if (!isShift && code === 'KeyE') {
+        inputEvent.preventDefault();
+        examWindow.webContents.send('host:focus-search-shortcut');
+        return;
+      }
+
+      // Ctrl + H (History)
+      if (!isShift && code === 'KeyH') {
+        inputEvent.preventDefault();
+        examWindow.webContents.send('host:history-shortcut');
+        return;
+      }
+
+      // Ctrl + J (Downloads)
+      if (!isShift && code === 'KeyJ') {
+        inputEvent.preventDefault();
+        examWindow.webContents.send('host:downloads-shortcut');
+        return;
+      }
+
+      // Ctrl + M (Magnifier)
+      if (!isShift && code === 'KeyM') {
+        inputEvent.preventDefault();
+        examWindow.webContents.send('host:magnifier-shortcut');
+        return;
+      }
+    }
+  });
 
   // Screen protection & AI process watchdog
   screenGuard.init(examWindow);
@@ -185,21 +423,31 @@ function launchExam() {
     }
   }
 
-  // Load browser wrapper UI
-  examWindow.loadFile(path.join(__dirname, '../renderer/browser.html'));
+  // Check for Virtual Machine presence on startup to protect environment integrity
+  checkVirtualMachine((isVm) => {
+    if (isVm) {
+      isVmDetected = true;
+      auditLog.log('VM_DETECTION_TRIGGERED');
+      console.warn('[Security] Virtual Machine environment detected! Locking down app.');
+      examWindow.loadFile(path.join(__dirname, '../renderer/vm-block.html'));
+    } else {
+      // Load browser wrapper UI normally
+      examWindow.loadFile(path.join(__dirname, '../renderer/browser.html'));
+    }
+  });
 
-  // Prevent closing via OS & show exit dialog in renderer
+  // Prevent closing via OS & show exit dialog in renderer (unless inside blocked VM mode)
   examWindow.on('close', (e) => {
-    if (examMode) {
+    if (examMode && !isVmDetected) {
       e.preventDefault();
       auditLog.log('CLOSE_ATTEMPT_BLOCKED');
       examWindow.webContents.send('browser:show-exit-dialog');
     }
   });
 
-  // Watchdog: restore fullscreen if lost (only when fullscreen lockdown is active)
+  // Watchdog: restore fullscreen if lost (only when fullscreen lockdown is active and VM not detected)
   examWindow.on('leave-full-screen', () => {
-    if (examMode && isFullscreen) {
+    if (examMode && isFullscreen && !isVmDetected) {
       auditLog.log('FULLSCREEN_LOST');
       examWindow.setFullScreen(true);
       examWindow.setKiosk(true);
@@ -214,16 +462,142 @@ function launchExam() {
 
   examWindow.on('blur', () => {
     if (!examMode || !examWindow || examWindow.isDestroyed()) return;
+    
+    // Log focus loss audit log trail
+    if (!isVmDetected) {
+      auditLog.log('FOCUS_LOST');
+    }
+    
     const latestCfg = config.get();
     const blockShortcuts = latestCfg.features.blockKeyboardShortcuts !== false;
     const fullscreen = latestCfg.features.fullscreenLockdown !== false;
-    if (blockShortcuts || fullscreen) {
+    if ((blockShortcuts || fullscreen) && !isVmDetected) {
       // Immediately reclaim focus — no delay so the task switcher has no time to appear
       examWindow.focus();
+      examWindow.webContents.focus();
     }
   });
 
-  auditLog.log('EXAM_STARTED', { url: cfg.examUrl });
+  examWindow.on('focus', () => {
+    if (examMode && !isVmDetected) {
+      auditLog.log('FOCUS_GAINED');
+    }
+  });
+
+  if (!isVmDetected) {
+    auditLog.log('EXAM_STARTED', { url: cfg.examUrl });
+    startHeartbeat();
+  }
+}
+
+// ─── Multi-Monitor Prevention Management ─────────────────────────────────────
+
+function handleMultiMonitorChange() {
+  const cfg = config.get();
+  const action = cfg.features.multiMonitorAction || 'block';
+  
+  let displays = screen.getAllDisplays();
+  if (mockMultiMonitor) {
+    // Simulated mock display
+    displays = [
+      screen.getPrimaryDisplay(),
+      {
+        id: 999999,
+        bounds: { x: 100, y: 100, width: 800, height: 600 },
+        workArea: { x: 100, y: 100, width: 800, height: 560 }
+      }
+    ];
+  }
+
+  if (displays.length > 1) {
+    if (action === 'block') {
+      closeBlackoutWindows();
+      if (examWindow && !examWindow.isDestroyed()) {
+        examWindow.webContents.send('browser:multi-monitor', { blocked: true });
+      }
+    } else if (action === 'blackout') {
+      if (examWindow && !examWindow.isDestroyed()) {
+        examWindow.webContents.send('browser:multi-monitor', { blocked: false });
+      }
+      createBlackoutWindows();
+    } else {
+      closeBlackoutWindows();
+      if (examWindow && !examWindow.isDestroyed()) {
+        examWindow.webContents.send('browser:multi-monitor', { blocked: false });
+      }
+    }
+    auditLog.log('MULTIPLE_MONITORS_DETECTED', { count: displays.length, action });
+  } else {
+    closeBlackoutWindows();
+    if (examWindow && !examWindow.isDestroyed()) {
+      examWindow.webContents.send('browser:multi-monitor', { blocked: false });
+    }
+  }
+}
+
+function createBlackoutWindows() {
+  closeBlackoutWindows();
+  const displays = screen.getAllDisplays();
+  const primaryDisplay = screen.getPrimaryDisplay();
+
+  for (const display of displays) {
+    if (display.id === primaryDisplay.id) continue;
+
+    const isMocked = (display.id === 999999);
+    const winOptions = {
+      x: display.bounds.x,
+      y: display.bounds.y,
+      width: display.bounds.width,
+      height: display.bounds.height,
+      frame: false,
+      resizable: false,
+      movable: false,
+      minimizable: false,
+      maximizable: false,
+      fullscreen: !isMocked,
+      kiosk: !isMocked,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      focusable: false,
+      backgroundColor: '#000000',
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      }
+    };
+
+    // If mocked, make it slightly smaller and centered on primary screen so the developer can see it
+    if (isMocked) {
+      winOptions.width = 600;
+      winOptions.height = 400;
+      winOptions.x = primaryDisplay.bounds.width / 2 - 300;
+      winOptions.y = primaryDisplay.bounds.height / 2 - 200;
+      winOptions.frame = true;
+      winOptions.movable = true;
+      winOptions.resizable = true;
+    }
+
+    const blackoutWin = new BrowserWindow(winOptions);
+
+    const cfg = config.get();
+    if (cfg.features.blockScreenCapture) {
+      blackoutWin.setContentProtection(true);
+    }
+
+    blackoutWin.loadURL('data:text/html,<html><head><title>Locked (Simulated Screen)</title></head><body style="background-color:%2305070f;color:%23ef4444;display:flex;flex-direction:column;justify-content:center;align-items:center;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;height:100vh;margin:0;overflow:hidden;"><div style="border:1px solid rgba(239,68,68,0.2);padding:24px;border-radius:12px;background:rgba(239,68,68,0.02);text-align:center;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,0.5);"><div style="font-size:36px;margin-bottom:12px;">🖥️🔒</div><h3 style="margin:0 0 10px 0;font-size:18px;font-weight:600;letter-spacing:0.02em;">Screen Locked</h3><p style="margin:0;font-size:12px;color:%2394a3b8;line-height:1.6;">This secondary monitor is locked during the exam session to ensure integrity.</p></div></body></html>');
+    
+    blackoutWin.show();
+    blackoutWindows.push(blackoutWin);
+  }
+}
+
+function closeBlackoutWindows() {
+  for (const win of blackoutWindows) {
+    if (win && !win.isDestroyed()) {
+      win.destroy();
+    }
+  }
+  blackoutWindows = [];
 }
 
 // ─── Admin panel ──────────────────────────────────────────────────────────────
@@ -241,6 +615,8 @@ function openAdminPanel(message = null) {
     screenGuard.stopSnippingWatchdog();
     screenGuard.stopAiProcessWatchdog();
     screenGuard.stopClipboardWatchdog();
+    closeBlackoutWindows();
+    stopHeartbeat();
     if (examWindow) examWindow.minimize();
   }
 
@@ -310,23 +686,18 @@ function openAdminPanel(message = null) {
       if (cfg.features.blockCopyPaste !== false) {
         screenGuard.startClipboardWatchdog();
       }
+      handleMultiMonitorChange();
+      startHeartbeat();
     }
   });
 }
 
 // ─── Secret admin access ──────────────────────────────────────────────────────
 
-async function _promptAdminAccess() {
-  // Use a simple dialog to avoid creating a new window
-  const result = await dialog.showInputBox
-    ? _inputDialogNative()
-    : _inputDialogFallback();
-}
-
-function _inputDialogFallback() {
-  // Since Electron doesn't have a built-in input dialog,
-  // we show the admin panel with a password prompt screen.
-  openAdminPanel();
+function _promptAdminAccess() {
+  if (examWindow && !examWindow.isDestroyed()) {
+    examWindow.webContents.send('browser:show-admin-prompt');
+  }
 }
 
 // ─── IPC Handlers ─────────────────────────────────────────────────────────────
@@ -348,10 +719,23 @@ ipcMain.handle('admin:getConfig', () => {
   return cfg;
 });
 
+// Minimal safe config for exam page preloads — only exposes what examPreload.js needs.
+// Deliberately does NOT expose examUrl, allowedDomains, passwords, tokens, or server config.
+ipcMain.handle('exam:getSafeConfig', () => {
+  const cfg = config.get();
+  return {
+    features: {
+      blockCopyPaste: cfg.features.blockCopyPaste,
+      blockRightClick: cfg.features.blockRightClick,
+      blockAiApiBackends: cfg.features.blockAiApiBackends,
+    }
+  };
+});
+
 // Save config
 ipcMain.handle('admin:saveConfig', (_, newConfig) => {
   // Sanitize: only allow safe keys
-  const allowed = ['examUrl', 'allowedDomains', 'blockedAiDomains', 'features', 'firstRun'];
+  const allowed = ['examUrl', 'allowedDomains', 'blockedAiDomains', 'features', 'firstRun', 'remoteServerUrl', 'clientAuthToken'];
   const sanitized = {};
   for (const key of allowed) {
     if (newConfig[key] !== undefined) sanitized[key] = newConfig[key];
@@ -401,6 +785,17 @@ ipcMain.handle('admin:launchExam', () => {
   return { success: true };
 });
 
+// Verify admin password from browser window
+ipcMain.handle('browser:verifyAdminPassword', (_, password) => {
+  return config.verifyAdminPassword(password);
+});
+
+// Open admin panel after browser window verification succeeds
+ipcMain.handle('browser:openAdminPanel', () => {
+  openAdminPanel();
+  return { success: true };
+});
+
 // Get preload path for webviews
 ipcMain.handle('browser:getPreloadPath', () => {
   const filePath = path.join(__dirname, '../preload/examPreload.js');
@@ -439,9 +834,77 @@ ipcMain.handle('browser:checkBlocked', (_, text) => {
   return urlFilter.isInputBlocked(text);
 });
 
+// Fetch autocomplete search suggestions securely from Google suggest queries API
+ipcMain.handle('browser:getSuggestions', async (_, query) => {
+  const https = require('https');
+  return new Promise((resolve) => {
+    if (!query || query.trim() === '') {
+      resolve([]);
+      return;
+    }
+    const url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`;
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          // parsed[1] contains the suggestions array of strings
+          if (Array.isArray(parsed) && Array.isArray(parsed[1])) {
+            resolve(parsed[1].slice(0, 5)); // Return top 5 autocomplete suggestions
+          } else {
+            resolve([]);
+          }
+        } catch (e) {
+          resolve([]);
+        }
+      });
+    }).on('error', () => {
+      resolve([]);
+    });
+  });
+});
+
+// Retrieve all browsing history entries
+ipcMain.handle('browser:getHistory', () => {
+  return history.getHistory();
+});
+
+// Add a new browsing history entry
+ipcMain.handle('browser:addHistory', (_, { title, url }) => {
+  history.addHistory(title, url);
+  return true;
+});
+
+// Delete a single history entry
+ipcMain.handle('browser:deleteHistoryItem', (_, id) => {
+  history.deleteHistoryItem(id);
+  return true;
+});
+
+// Clear all history list
+ipcMain.handle('browser:clearHistory', () => {
+  history.clearHistory();
+  return true;
+});
+
+// Save partial config from the browser UI (e.g. uiTheme)
+ipcMain.handle('browser:saveConfig', (_, partial) => {
+  // Whitelist only UI-safe fields — never allow overwriting security config from renderer
+  const allowed = ['uiTheme', 'openTabs'];
+  const safe = {};
+  for (const key of allowed) {
+    if (partial && key in partial) safe[key] = partial[key];
+  }
+  if (Object.keys(safe).length > 0) {
+    config.save(safe);
+  }
+  return true;
+});
+
 // Retrieve download manager state list
 ipcMain.handle('downloads:getList', () => {
-  return downloadsList;
+  return downloads.getDownloads();
 });
 
 // Cancel active download
@@ -465,6 +928,15 @@ ipcMain.handle('browser:showItemInFolder', (_, filePath) => {
     } catch (e) {
       console.error('[Main] showItemInFolder failed:', e);
     }
+  }
+  return false;
+});ipcMain.handle('browser:setThemeSource', (_, themeSource) => {
+  try {
+    const { nativeTheme } = require('electron');
+    nativeTheme.themeSource = themeSource;
+    return true;
+  } catch (e) {
+    console.error('[Main] Set theme source failed:', e);
   }
   return false;
 });
@@ -511,10 +983,9 @@ ipcMain.on('exam-event', (event, { type, ...data }) => {
 
 // Secure Download Manager
 const activeDownloads = new Map();
-let downloadsList = [];
 
 function setupDownloadHandler() {
-  const { session } = require('electron');
+  // session is already imported at the top of the file
   session.defaultSession.on('will-download', (event, item, webContents) => {
     const name = item.getFilename();
     const size = item.getTotalBytes();
@@ -530,13 +1001,13 @@ function setupDownloadHandler() {
       savePath: '',
       startTime: new Date().toISOString()
     };
-    downloadsList.unshift(dlObj); // Add to beginning of downloads list
+    downloads.addOrUpdateDownload(dlObj);
     activeDownloads.set(downloadId, item);
 
     // Broadcast updates to the renderer process
     const broadcastList = () => {
       if (examWindow && !examWindow.isDestroyed()) {
-        examWindow.webContents.send('browser:downloads-updated', downloadsList);
+        examWindow.webContents.send('browser:downloads-updated', downloads.getDownloads());
       }
     };
 
@@ -547,10 +1018,11 @@ function setupDownloadHandler() {
     }
     broadcastList();
 
-    // Set default path to User Downloads folder
-    item.setSaveDialogOptions({
-      defaultPath: path.join(app.getPath('downloads'), name)
-    });
+    // Set save path directly to bypass the save dialog
+    // This allows downloads to complete automatically in kiosk/always-on-top mode
+    // and prevents accessing the OS file system explorer during exams.
+    const savePath = path.join(app.getPath('downloads'), name);
+    item.setSavePath(savePath);
 
     item.on('updated', (event, state) => {
       if (state === 'interrupted') {
@@ -563,6 +1035,7 @@ function setupDownloadHandler() {
         dlObj.receivedBytes = item.getReceivedBytes();
         dlObj.status = 'downloading';
       }
+      downloads.addOrUpdateDownload(dlObj);
       broadcastList();
     });
 
@@ -584,6 +1057,7 @@ function setupDownloadHandler() {
           examWindow.webContents.send('browser:show-toast', { message: `Download failed: ${name} (${state})`, type: 'error' });
         }
       }
+      downloads.addOrUpdateDownload(dlObj);
       broadcastList();
     });
   });
@@ -595,6 +1069,177 @@ function setupDownloadHandler() {
 app.on('web-contents-created', (event, contents) => {
   if (contents.getType() === 'webview') {
     urlFilter.attach(contents);
+
+    // Intercept keys before they get eaten by the webview guest
+    contents.on('before-input-event', (inputEvent, input) => {
+      if (input.type !== 'keyDown') return;
+
+      const isControl = input.control;
+      const isShift = input.shift;
+      const isAlt = input.alt;
+      const code = input.code;
+      const key = input.key.toLowerCase();
+
+      // Block DevTools shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U) inside guest webviews
+      if (key === 'f12' || (isControl && isShift && (key === 'i' || key === 'j' || key === 'c')) || (isControl && key === 'u')) {
+        inputEvent.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'DevTools (Webview)' });
+        if (examWindow && !examWindow.isDestroyed()) {
+          examWindow.webContents.send('browser:show-toast', { message: 'Developer tools are disabled.', type: 'error' });
+        }
+        return;
+      }
+
+      // Block Print (Ctrl+P) and Save (Ctrl+S) inside guest webviews
+      if (isControl && (key === 'p' || key === 's')) {
+        inputEvent.preventDefault();
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: `Ctrl+${key.toUpperCase()} (Webview)` });
+        if (examWindow && !examWindow.isDestroyed()) {
+          examWindow.webContents.send('browser:show-toast', { message: 'Printing and page saving are disabled.', type: 'error' });
+        }
+        return;
+      }
+
+      // 1. Reload shortcuts (F5, Ctrl+R, Ctrl+Shift+R, Ctrl+F5)
+      const isF5Reload = (code === 'F5' && !isControl && !isAlt && !isShift);
+      const isCtrlRReload = (isControl && !isAlt && code === 'KeyR');
+      const isCtrlF5Reload = (isControl && code === 'F5');
+
+      if (isF5Reload || isCtrlRReload || isCtrlF5Reload) {
+        inputEvent.preventDefault();
+        if (examWindow && !examWindow.isDestroyed()) {
+          if (isExamActiveGlobal) {
+            examWindow.webContents.send('browser:show-toast', { message: 'Reloading is blocked during an active exam.', type: 'error' });
+          } else {
+            const ignoreCache = isShift || isCtrlF5Reload;
+            examWindow.webContents.send('host:reload-shortcut', { ignoreCache });
+          }
+        }
+        return;
+      }
+
+      // 2. Ctrl + Tab (Next tab) / Ctrl + Shift + Tab (Prev tab)
+      if (isControl && !isAlt && code === 'Tab') {
+        inputEvent.preventDefault();
+        if (examWindow && !examWindow.isDestroyed()) {
+          if (isExamActiveGlobal) {
+            examWindow.webContents.send('browser:show-toast', { message: 'You cannot switch tabs while taking an active exam.', type: 'error' });
+          } else {
+            if (isShift) {
+              examWindow.webContents.send('host:tab-prev-shortcut');
+            } else {
+              examWindow.webContents.send('host:tab-next-shortcut');
+            }
+          }
+        }
+        return;
+      }
+
+      if (isControl && !isAlt) {
+        // Tab switching Ctrl+1 to Ctrl+9
+        const match = code.match(/^Digit([1-9])$/);
+        if (match && !isShift) {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            if (isExamActiveGlobal) {
+              examWindow.webContents.send('browser:show-toast', { message: 'You cannot switch tabs while taking an active exam.', type: 'error' });
+            } else {
+              const digit = parseInt(match[1], 10);
+              examWindow.webContents.send('host:tab-switch-shortcut', { digit });
+            }
+          }
+          return;
+        }
+
+        // Ctrl + Shift + T
+        if (isShift && code === 'KeyT') {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            if (isExamActiveGlobal) {
+              examWindow.webContents.send('browser:show-toast', { message: 'You cannot open new tabs while taking an active exam.', type: 'error' });
+            } else {
+              examWindow.webContents.send('host:tab-reopen-shortcut');
+            }
+          }
+          return;
+        }
+
+        // Ctrl + T (New Tab)
+        if (!isShift && code === 'KeyT') {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            if (isExamActiveGlobal) {
+              examWindow.webContents.send('browser:show-toast', { message: 'You cannot open new tabs while taking an active exam.', type: 'error' });
+            } else {
+              examWindow.webContents.send('host:tab-new-shortcut');
+            }
+          }
+          return;
+        }
+
+        // Ctrl + Shift + W (Close all tabs)
+        if (isShift && code === 'KeyW') {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            if (isExamActiveGlobal) {
+              examWindow.webContents.send('browser:show-toast', { message: 'You cannot close tabs while taking an active exam.', type: 'error' });
+            } else {
+              examWindow.webContents.send('host:tab-close-all-shortcut');
+            }
+          }
+          return;
+        }
+
+        // Ctrl + W
+        if (!isShift && code === 'KeyW') {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            if (isExamActiveGlobal) {
+              examWindow.webContents.send('browser:show-toast', { message: 'You cannot close tabs while taking an active exam.', type: 'error' });
+            } else {
+              examWindow.webContents.send('host:tab-close-shortcut');
+            }
+          }
+          return;
+        }
+
+        // Ctrl + E (Focus Search)
+        if (!isShift && code === 'KeyE') {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            examWindow.webContents.send('host:focus-search-shortcut');
+          }
+          return;
+        }
+
+        // Ctrl + H (History)
+        if (!isShift && code === 'KeyH') {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            examWindow.webContents.send('host:history-shortcut');
+          }
+          return;
+        }
+
+        // Ctrl + J (Downloads)
+        if (!isShift && code === 'KeyJ') {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            examWindow.webContents.send('host:downloads-shortcut');
+          }
+          return;
+        }
+
+        // Ctrl + M (Magnifier)
+        if (!isShift && code === 'KeyM') {
+          inputEvent.preventDefault();
+          if (examWindow && !examWindow.isDestroyed()) {
+            examWindow.webContents.send('host:magnifier-shortcut');
+          }
+          return;
+        }
+      }
+    });
 
     // Push config directly from the main process on every page load.
     contents.on('dom-ready', () => {
@@ -608,8 +1253,180 @@ app.on('web-contents-created', (event, contents) => {
       contents.send('seb:config', safeCfg);
     });
 
+    // Only forward warnings and errors from webviews to the terminal.
+    // Level 0 = log/info (extremely noisy — every site's analytics spam),
+    // Level 1 = warning, Level 2 = error, Level 3 = debug.
     contents.on('console-message', (event, level, message, line, sourceId) => {
-      console.log(`[Webview Console] ${message} (at ${sourceId}:${line})`);
+      if (level < 1) return; // Silence log/info entirely
+
+      // Drop CSS-styled console messages (%c/%d markers) — these are browser
+      // developer tricks that look like garbage in a raw terminal.
+      if (message.startsWith('%c') || message.startsWith('%d')) return;
+
+      // Drop well-known third-party noise that isn't actionable:
+      if (
+        message.includes('Electron Security Warning') ||   // Electron's own CSP nag (shown until packaged)
+        message.includes('ch-ua-form-factors') ||          // Unrecognised Permissions-Policy feature
+        message.includes('speculation rules') ||           // Browser speculation API (Chrome-only)
+        message.includes('font-size:0') ||                 // CSS-formatted hidden console.log tricks
+        message.includes('challenges.cloudflare.com') ||  // Cloudflare Turnstile challenge noise
+        message.includes('GoTrueClient') ||                // Supabase auth duplicate instance warning
+        message.includes('willReadFrequently')             // Canvas2D performance hint
+      ) return;
+
+      const tag = level === 1 ? 'WARN' : 'ERROR';
+      console.log(`[Webview ${tag}] ${message} (at ${sourceId}:${line})`);
     });
+
   }
 });
+
+// ─── Remote Management Server Sync & Telemetry ──────────────────────────────
+
+async function syncRemoteConfig() {
+  const cfg = config.get();
+  if (!cfg.remoteServerUrl) return { success: false, error: 'No remote server URL configured' };
+
+  try {
+    const url = `${cfg.remoteServerUrl.replace(/\/$/, '')}/config`;
+    const headers = { 'Content-Type': 'application/json' };
+    if (cfg.clientAuthToken) {
+      headers['Authorization'] = `Bearer ${cfg.clientAuthToken}`;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(url, { headers, signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Server returned status ${response.status}`);
+    }
+
+    const remoteData = await response.json();
+    if (remoteData && typeof remoteData === 'object') {
+      config.save(remoteData);
+      auditLog.log('REMOTE_CONFIG_SYNCED');
+      return { success: true };
+    } else {
+      throw new Error('Invalid config response format');
+    }
+  } catch (err) {
+    auditLog.log('REMOTE_CONFIG_SYNC_FAILED', { error: err.message });
+    return { success: false, error: err.message };
+  }
+}
+
+async function sendHeartbeat() {
+  const cfg = config.get();
+  if (!cfg.remoteServerUrl || !cfg.features.clientHeartbeat) return;
+
+  try {
+    const url = `${cfg.remoteServerUrl.replace(/\/$/, '')}/heartbeat`;
+    const headers = { 'Content-Type': 'application/json' };
+    if (cfg.clientAuthToken) {
+      headers['Authorization'] = `Bearer ${cfg.clientAuthToken}`;
+    }
+
+    let activeUrl = cfg.examUrl;
+    let tabsCount = (cfg.openTabs || []).length;
+
+    const payload = {
+      clientToken: cfg.clientAuthToken,
+      hostname: os.hostname(),
+      platform: process.platform,
+      examMode,
+      activeUrl,
+      tabsCount,
+      connectedDisplays: screen.getAllDisplays().length,
+      timestamp: new Date().toISOString(),
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      console.warn(`[Telemetry] Heartbeat failed with status: ${response.status}`);
+    }
+  } catch (err) {
+    console.error('[Telemetry] Heartbeat error:', err.message);
+  }
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  const cfg = config.get();
+  if (cfg.remoteServerUrl && cfg.features.clientHeartbeat) {
+    sendHeartbeat();
+    heartbeatInterval = setInterval(sendHeartbeat, 30000);
+  }
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+}
+
+// ─── Remote Management IPC Handlers ──────────────────────────────────────────
+
+ipcMain.handle('admin:testRemoteConnection', async (_, { url, token }) => {
+  try {
+    const endpoint = `${url.replace(/\/$/, '')}/config`;
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const response = await fetch(endpoint, { headers, signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      return { success: true };
+    } else {
+      return { success: false, error: `Server returned status ${response.status}` };
+    }
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('admin:syncConfigNow', async () => {
+  return await syncRemoteConfig();
+});
+
+function checkVirtualMachine(callback) {
+  if (process.platform !== 'win32') {
+    return callback(false); // Standard bypass for non-Windows dev systems
+  }
+
+  // WMI check is extremely lightweight and standard on Windows systems
+  exec('wmic path win32_computersystem get manufacturer,model', (err, stdout) => {
+    if (err) return callback(false);
+    const output = stdout.toLowerCase();
+    const vmKeywords = ['virtualbox', 'vmware', 'hyper-v', 'qemu', 'xen', 'parallels', 'virtual machine'];
+    const isVm = vmKeywords.some(kw => output.includes(kw));
+
+    if (isVm) {
+      callback(true);
+    } else {
+      // Secondary check: BIOS manufacturer
+      exec('wmic path win32_bios get manufacturer', (err2, stdout2) => {
+        if (err2) return callback(false);
+        const biosOutput = stdout2.toLowerCase();
+        const isVmBios = vmKeywords.some(kw => biosOutput.includes(kw));
+        callback(isVmBios);
+      });
+    }
+  });
+}
+

@@ -1,0 +1,462 @@
+/* newtab.css — Prodigy New Tab Page Styles */
+
+/* ─── CSS Variables — inherit from current SEB theme via body class ─────── */
+:root {
+  --nt-bg-from: #070913;
+  --nt-bg-to: #0d1127;
+  --nt-accent: #4f8ef7;
+  --nt-accent-glow: rgba(79, 142, 247, 0.35);
+  --nt-text: #f8fafc;
+  --nt-muted: #94a3b8;
+  --nt-card: rgba(255, 255, 255, 0.04);
+  --nt-card-border: rgba(255, 255, 255, 0.08);
+  --nt-search-bg: rgba(255, 255, 255, 0.06);
+  --nt-search-border: rgba(255, 255, 255, 0.12);
+  --nt-search-focus-border: rgba(79, 142, 247, 0.6);
+  --nt-shield: #10b981;
+  --nt-accent-contrast: #ffffff;
+}
+
+/* Cyberpunk theme overrides */
+body.theme-cyberpunk {
+  --nt-bg-from: #0b0518;
+  --nt-bg-to: #14092b;
+  --nt-accent: #ff007f;
+  --nt-accent-glow: rgba(255, 0, 127, 0.35);
+  --nt-text: #00ffff;
+  --nt-muted: #bd93f9;
+  --nt-card: rgba(255, 0, 127, 0.04);
+  --nt-card-border: rgba(255, 0, 127, 0.12);
+  --nt-search-focus-border: rgba(255, 0, 127, 0.6);
+  --nt-shield: #00ff66;
+}
+
+/* Forest theme overrides */
+body.theme-forest {
+  --nt-bg-from: #070e0b;
+  --nt-bg-to: #0d1a14;
+  --nt-accent: #10b981;
+  --nt-accent-glow: rgba(16, 185, 129, 0.35);
+  --nt-text: #e6f4ea;
+  --nt-muted: #a3cfbb;
+  --nt-card: rgba(16, 185, 129, 0.04);
+  --nt-card-border: rgba(16, 185, 129, 0.12);
+  --nt-search-focus-border: rgba(16, 185, 129, 0.6);
+}
+
+/* Sunset theme overrides */
+body.theme-sunset {
+  --nt-bg-from: #0e0909;
+  --nt-bg-to: #1b1111;
+  --nt-accent: #f97316;
+  --nt-accent-glow: rgba(249, 115, 22, 0.35);
+  --nt-text: #fff7ed;
+  --nt-muted: #fdba74;
+  --nt-card: rgba(249, 115, 22, 0.04);
+  --nt-card-border: rgba(249, 115, 22, 0.12);
+  --nt-search-focus-border: rgba(249, 115, 22, 0.6);
+}
+
+/* Light theme overrides */
+body.theme-light {
+  --nt-bg-from: #e2e8f0;
+  --nt-bg-to: #f1f5f9;
+  --nt-accent: #3b82f6;
+  --nt-accent-glow: rgba(59, 130, 246, 0.3);
+  --nt-text: #0f172a;
+  --nt-muted: #475569;
+  --nt-card: rgba(0, 0, 0, 0.04);
+  --nt-card-border: rgba(0, 0, 0, 0.08);
+  --nt-search-bg: rgba(255, 255, 255, 0.8);
+  --nt-search-border: rgba(0, 0, 0, 0.1);
+  --nt-search-focus-border: rgba(59, 130, 246, 0.6);
+  --nt-shield: #059669;
+}
+
+body.theme-monochrome {
+  --nt-bg-from: #121212;
+  --nt-bg-to: #1c1c1c;
+  --nt-accent: #ffffff;
+  --nt-accent-glow: rgba(255, 255, 255, 0.15);
+  --nt-text: #ffffff;
+  --nt-muted: #a0a0a0;
+  --nt-card: rgba(255, 255, 255, 0.04);
+  --nt-card-border: rgba(255, 255, 255, 0.08);
+  --nt-search-bg: rgba(255, 255, 255, 0.06);
+  --nt-search-border: rgba(255, 255, 255, 0.12);
+  --nt-search-focus-border: rgba(255, 255, 255, 0.6);
+  --nt-shield: #ffffff;
+  --nt-accent-contrast: #121212;
+}
+
+/* Sakura theme overrides */
+body.theme-sakura {
+  --nt-bg-from: #0e0810;
+  --nt-bg-to: #1a0b18;
+  --nt-accent: #ff6ba8;
+  --nt-accent-glow: rgba(255, 107, 168, 0.35);
+  --nt-text: #ffe4f0;
+  --nt-muted: #e8a0c0;
+  --nt-card: rgba(255, 107, 168, 0.04);
+  --nt-card-border: rgba(255, 107, 168, 0.14);
+  --nt-search-bg: rgba(255, 107, 168, 0.06);
+  --nt-search-border: rgba(255, 107, 168, 0.16);
+  --nt-search-focus-border: rgba(255, 107, 168, 0.6);
+  --nt-shield: #ff91af;
+}
+
+/* Fire theme overrides */
+body.theme-fire {
+  --nt-bg-from: #0c0500;
+  --nt-bg-to: #1a0800;
+  --nt-accent: #ff5500;
+  --nt-accent-glow: rgba(255, 85, 0, 0.4);
+  --nt-text: #fff3e0;
+  --nt-muted: #ffaa60;
+  --nt-card: rgba(255, 85, 0, 0.04);
+  --nt-card-border: rgba(255, 85, 0, 0.15);
+  --nt-search-bg: rgba(255, 85, 0, 0.06);
+  --nt-search-border: rgba(255, 85, 0, 0.16);
+  --nt-search-focus-border: rgba(255, 85, 0, 0.6);
+  --nt-shield: #ff8c00;
+}
+
+/* Custom monochrome overrides for element visibility */
+body.theme-monochrome #nt-google-icon {
+  filter: brightness(0) invert(1);
+}
+
+body.theme-monochrome #nt-search-hint {
+  opacity: 0.9;
+}
+
+body.theme-monochrome #nt-search-hint kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* ─── Reset ──────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, var(--nt-bg-from) 0%, var(--nt-bg-to) 100%);
+  color: var(--nt-text);
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+
+
+/* ─── Root Container ─────────────────────────────────────────────────────── */
+
+#newtab-root {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  gap: 0;
+}
+
+/* ─── Settings Button ────────────────────────────────────────────────────── */
+
+#nt-settings-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--nt-card-border);
+  background: var(--nt-card);
+  color: var(--nt-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  backdrop-filter: blur(12px);
+}
+
+#nt-settings-btn:hover {
+  background: var(--nt-accent-glow);
+  color: var(--nt-accent);
+  border-color: var(--nt-accent);
+}
+
+/* ─── Hero Section ───────────────────────────────────────────────────────── */
+
+#nt-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 700px;
+  flex: 1;
+  justify-content: center;
+}
+
+#nt-top-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+}
+
+.nt-hero-spacer {
+  flex: 1;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* ─── Brand Row ──────────────────────────────────────────────────────────── */
+
+#nt-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+#nt-logo-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+#nt-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 16px var(--nt-accent-glow));
+}
+
+#nt-logo-glow {
+  position: absolute;
+  inset: -8px;
+  border-radius: 24px;
+  background: radial-gradient(ellipse at center, var(--nt-accent-glow) 0%, transparent 70%);
+}
+
+#nt-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#nt-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--nt-text) 40%, var(--nt-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+#nt-subtitle {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--nt-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ─── Clock Block ────────────────────────────────────────────────────────── */
+
+#nt-clock-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+#nt-clock {
+  font-size: 3.8rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--nt-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 0 40px var(--nt-accent-glow);
+}
+
+#nt-date {
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--nt-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ─── Motivational Quote ─────────────────────────────────────────────────── */
+
+#nt-quote {
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--nt-muted);
+  text-align: center;
+  max-width: 480px;
+  line-height: 1.6;
+}
+
+/* ─── Search Bar ─────────────────────────────────────────────────────────── */
+
+#nt-search-wrap {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#nt-search-box {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 0 16px;
+  background: var(--nt-search-bg);
+  border: 1.5px solid var(--nt-search-border);
+  border-radius: 26px;
+  backdrop-filter: blur(20px);
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+}
+
+#nt-search-box:focus-within {
+  border-color: var(--nt-search-focus-border);
+  background: var(--nt-search-bg);
+  box-shadow: 0 0 0 4px var(--nt-accent-glow), 0 8px 32px rgba(0,0,0,0.3);
+}
+
+#nt-google-icon {
+  flex-shrink: 0;
+}
+
+#nt-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--nt-text);
+  caret-color: var(--nt-accent);
+}
+
+#nt-search-input::placeholder {
+  color: var(--nt-muted);
+}
+
+#nt-search-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: var(--nt-accent);
+  color: var(--nt-accent-contrast, #fff);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 2px 12px var(--nt-accent-glow);
+}
+
+#nt-search-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 20px var(--nt-accent-glow);
+}
+
+#nt-search-btn:active {
+  transform: scale(0.96);
+}
+
+#nt-search-hint {
+  font-size: 0.78rem;
+  color: var(--nt-muted);
+  opacity: 0.7;
+}
+
+#nt-search-hint kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--nt-card-border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  background: var(--nt-card);
+}
+
+/* ─── Footer Stats Bar ───────────────────────────────────────────────────── */
+
+#nt-footer {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 20px;
+  background: var(--nt-card);
+  border: 1px solid var(--nt-card-border);
+  border-radius: 50px;
+  backdrop-filter: blur(16px);
+  white-space: nowrap;
+}
+
+.nt-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--nt-muted);
+}
+
+.nt-stat .shield-icon {
+  color: var(--nt-shield);
+}
+
+.nt-stat-icon {
+  opacity: 0.8;
+}
+
+.nt-stat-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--nt-card-border);
+}
+

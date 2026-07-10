@@ -99,6 +99,7 @@ async function initAdminApp() {
   setupNav();
   setupDashboard();
   setupSecuritySection();
+  setupRemoteSyncSection();
   setupWhitelistSection();
   setupAiBlockSection();
   setupPasswordsSection();
@@ -161,6 +162,21 @@ async function setupDashboard() {
     badge.innerHTML = `<span class="dot"></span>${meta.name}`;
     featureGrid.appendChild(badge);
   }
+
+  // Multi-Monitor Badge
+  const monitorAction = features.multiMonitorAction || 'block';
+  const monitorBadge = document.createElement('div');
+  if (monitorAction === 'block') {
+    monitorBadge.className = 'feature-badge on';
+    monitorBadge.innerHTML = '<span class="dot"></span>Multi-Monitor: Blocked';
+  } else if (monitorAction === 'blackout') {
+    monitorBadge.className = 'feature-badge on';
+    monitorBadge.innerHTML = '<span class="dot"></span>Multi-Monitor: Blackout';
+  } else {
+    monitorBadge.className = 'feature-badge off';
+    monitorBadge.innerHTML = '<span class="dot"></span>Multi-Monitor: Allowed';
+  }
+  featureGrid.appendChild(monitorBadge);
 }
 
 
@@ -190,11 +206,15 @@ function setupSecuritySection() {
     container.appendChild(row);
   }
 
+  // Bind dropdown selection
+  document.getElementById('multi-monitor-select').value = features.multiMonitorAction || 'block';
+
   document.getElementById('save-security-btn').addEventListener('click', async () => {
     const updatedFeatures = {};
     for (const key of Object.keys(FEATURE_META)) {
       updatedFeatures[key] = document.getElementById(`toggle-${key}`).checked;
     }
+    updatedFeatures.multiMonitorAction = document.getElementById('multi-monitor-select').value;
     await window.sebAdmin.saveConfig({ features: updatedFeatures });
     currentConfig.features = updatedFeatures;
     setupDashboard();
@@ -271,7 +291,7 @@ async function setupAiBlockSection() {
         const tag = document.createElement('div');
         tag.className = 'domain-tag domain-tag-blocked';
         tag.innerHTML = `
-          <span>🚫 ${domain}</span>
+          <span style="display:flex;align-items:center;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--danger);margin-right:6px;flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> ${domain}</span>
           <span class="tag-badge">Built-in</span>
         `;
         builtinList.appendChild(tag);
@@ -326,7 +346,7 @@ function renderCustomAiList() {
     const tag = document.createElement('div');
     tag.className = 'domain-tag domain-tag-blocked';
     tag.innerHTML = `
-      <span>🚫 ${domain}</span>
+      <span style="display:flex;align-items:center;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--danger);margin-right:6px;flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> ${domain}</span>
       <button class="btn-icon-sm btn-icon-remove" data-i="${i}">Remove</button>
     `;
     tag.querySelector('button').addEventListener('click', () => {
@@ -473,4 +493,141 @@ function showToast(message, type = 'info') {
   _toastTimer = setTimeout(() => {
     toast.classList.add('hidden');
   }, 3000);
+}
+
+// ─── Central Management Server Sync Setup ───────────────────────────────────
+
+function setupRemoteSyncSection() {
+  const serverUrlInput = document.getElementById('remote-server-url');
+  const authTokenInput = document.getElementById('client-auth-token');
+  const syncConfigCheckbox = document.getElementById('toggle-syncConfigOnStartup');
+  const remoteTelemetryCheckbox = document.getElementById('toggle-remoteTelemetry');
+  const clientHeartbeatCheckbox = document.getElementById('toggle-clientHeartbeat');
+  
+  const testBtn = document.getElementById('test-connection-btn');
+  const saveBtn = document.getElementById('save-server-btn');
+  const syncBtn = document.getElementById('sync-now-btn');
+  
+  const statusPanel = document.getElementById('connection-status-panel');
+  const statusText = document.getElementById('connection-status-text');
+
+  // Load current config values
+  serverUrlInput.value = currentConfig.remoteServerUrl || '';
+  authTokenInput.value = currentConfig.clientAuthToken || '';
+  
+  const features = currentConfig.features || {};
+  syncConfigCheckbox.checked = !!features.syncConfigOnStartup;
+  remoteTelemetryCheckbox.checked = !!features.remoteTelemetry;
+  clientHeartbeatCheckbox.checked = !!features.clientHeartbeat;
+
+  const updateSyncButtonState = () => {
+    syncBtn.disabled = !serverUrlInput.value.trim();
+  };
+  
+  updateSyncButtonState();
+  serverUrlInput.addEventListener('input', updateSyncButtonState);
+
+  // Update status bar UI helper
+  const updateStatusUI = (status, details = '') => {
+    statusPanel.className = 'connection-status-panel mt-4 ' + status;
+    statusPanel.classList.remove('inactive');
+    if (status === 'success') {
+      statusText.textContent = 'Status: Connected';
+    } else if (status === 'error') {
+      statusText.textContent = `Status: Connection Failed (${details})`;
+    } else {
+      statusPanel.classList.add('inactive');
+      statusText.textContent = 'Status: Not Configured';
+    }
+  };
+
+  if (currentConfig.remoteServerUrl) {
+    updateStatusUI('success');
+  } else {
+    updateStatusUI('inactive');
+  }
+
+  // Test Connection
+  testBtn.addEventListener('click', async () => {
+    const url = serverUrlInput.value.trim();
+    const token = authTokenInput.value.trim();
+    if (!url) {
+      showToast('Please enter a server URL to test.', 'error');
+      return;
+    }
+
+    testBtn.disabled = true;
+    showToast('Testing server connection...', 'info');
+    
+    try {
+      const res = await window.sebAdmin.testRemoteConnection(url, token);
+      if (res.success) {
+        showToast('Connection test successful!', 'success');
+        updateStatusUI('success');
+      } else {
+        showToast(`Connection test failed: ${res.error}`, 'error');
+        updateStatusUI('error', res.error);
+      }
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+      updateStatusUI('error', err.message);
+    } finally {
+      testBtn.disabled = false;
+    }
+  });
+
+  // Save Settings
+  saveBtn.addEventListener('click', async () => {
+    const url = serverUrlInput.value.trim();
+    const token = authTokenInput.value.trim();
+    
+    const updatedFeatures = {
+      ...currentConfig.features,
+      syncConfigOnStartup: syncConfigCheckbox.checked,
+      remoteTelemetry: remoteTelemetryCheckbox.checked,
+      clientHeartbeat: clientHeartbeatCheckbox.checked
+    };
+
+    await window.sebAdmin.saveConfig({
+      remoteServerUrl: url,
+      clientAuthToken: token,
+      features: updatedFeatures
+    });
+    
+    currentConfig.remoteServerUrl = url;
+    currentConfig.clientAuthToken = token;
+    currentConfig.features = updatedFeatures;
+    
+    if (url) {
+      updateStatusUI('success');
+    } else {
+      updateStatusUI('inactive');
+    }
+    
+    setupDashboard();
+    showToast('Remote Server settings saved!', 'success');
+  });
+
+  // Manual Sync Now
+  syncBtn.addEventListener('click', async () => {
+    syncBtn.disabled = true;
+    showToast('Fetching latest remote configurations...', 'info');
+    
+    try {
+      const res = await window.sebAdmin.syncConfigNow();
+      if (res.success) {
+        showToast('Configuration synchronized successfully!', 'success');
+        // Reload settings page config state
+        currentConfig = await window.sebAdmin.getConfig();
+        // Bind UI inputs again with the new remote configuration details
+        initAdminApp();
+      } else {
+        showToast(`Sync failed: ${res.error}`, 'error');
+      }
+    } catch (err) {
+      showToast(`Sync error: ${err.message}`, 'error');
+    } finally {
+      syncBtn.disabled = false;
+    }
+  });
 }

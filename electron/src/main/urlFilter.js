@@ -13,6 +13,29 @@ const { shell, session, webContents } = require('electron');
 const auditLog = require('./auditLog');
 const config = require('./config');
 
+// ─── Built-in Game domain/keyword block list ─────────────────────────────────
+const BLOCKED_GAME_KEYWORDS = [
+  'y8',
+  'poki',
+  'crazygames',
+  'pudge-wars',
+  'poker-project',
+  'pusoy',
+  'blackjack',
+  'casino',
+  'tetris',
+  'itch.io',
+  'miniclip',
+  'kongregate',
+  'silvergames',
+  'armorgames',
+  'addictinggames',
+  'game',
+  'poker',
+  'arcade',
+  'wars'
+];
+
 // ─── Built-in AI domain block list ───────────────────────────────────────────
 // Subdomains are matched automatically (e.g. blocking "openai.com" also blocks
 // "api.openai.com", "platform.openai.com", etc.)
@@ -96,6 +119,24 @@ const BUILTIN_AI_DOMAINS = [
   'v0.dev',
   'chatlarena.org',
   'lmarena.ai',
+  // Math & homework AI (commonly used to cheat on exams)
+  'mathgptpro.com',         // seen in live logs
+  'mathway.com',
+  'photomath.com',
+  'cymath.com',
+  'wolframalpha.com',       // computational AI answers
+  'socratic.org',           // Google homework helper
+  'brainly.com',            // crowd-sourced homework cheating
+  'chegg.com',              // homework answers
+  'coursehero.com',         // homework answers
+  'studocu.com',            // document sharing / answers
+  'numerade.com',
+  'bartleby.com',
+  'slader.com',
+  'homeworkify.net',
+  'gauthmath.com',
+  // Translation AI (used to cheat via foreign-language lookup)
+  'deepl.com',
 ];
 
 // Backend APIs used by wrapper/custom AI applications
@@ -122,6 +163,46 @@ const BUILTIN_AI_API_BACKENDS = [
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
+ * Check whether a URL belongs to a blocked Game domain or keyword.
+ * Returns true if the URL should be BLOCKED.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isGameBlocked(url) {
+  if (!url || url === 'about:blank' || url.startsWith('file://')) {
+    return false;
+  }
+
+  let hostname;
+  try {
+    hostname = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  const normalizedHostname = hostname.replace(/^www\./, '');
+
+  // Whitelist/allowed domain checks first (always allowed)
+  if (isAllowedDomain(url)) {
+    return false;
+  }
+
+  // Check Game keywords
+  for (const keyword of BLOCKED_GAME_KEYWORDS) {
+    if (normalizedHostname.includes(keyword)) {
+      return true;
+    }
+  }
+
+  // Check Game TLDs
+  if (normalizedHostname.endsWith('.games') || normalizedHostname.endsWith('.play')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Attach URL filtering to a webContents instance.
  * @param {Electron.WebContents} webContents
  */
@@ -130,26 +211,43 @@ function attach(webContents) {
   webContents.on('will-frame-navigate', (event, details) => {
     const url = details.url;
     const resType = details.isMainFrame ? 'mainFrame' : 'subFrame';
-    if (isAiBlocked(url, resType)) {
-      event.preventDefault();
-      auditLog.log('AI_URL_BLOCKED', { url });
-      if (details.isMainFrame) {
-        const owner = webContents.getOwnerBrowserWindow();
-        if (owner && !owner.isDestroyed()) {
-          owner.webContents.send('browser:show-blocked-toast', { url });
-        }
+
+    // Block non-standard protocols to prevent triggering external software launches
+    try {
+      const parsed = new URL(url);
+      const protocol = parsed.protocol.toLowerCase();
+      const allowedProtocols = ['http:', 'https:', 'file:', 'data:', 'seb:'];
+      if (!allowedProtocols.includes(protocol)) {
+        event.preventDefault();
+        console.warn(`[URLFilter] Blocked external application protocol launch: ${url}`);
+        return;
       }
-      console.warn('[URLFilter] Blocked AI frame navigation to:', url);
+    } catch (e) {}
+
+    const isGame = isGameBlocked(url);
+    const isAi = isAiBlocked(url, resType);
+
+    if (isAi || isGame) {
+      event.preventDefault();
+      auditLog.log(isGame ? 'GAME_URL_BLOCKED' : 'AI_URL_BLOCKED', { url });
+      const owner = webContents.getOwnerBrowserWindow();
+      if (owner && !owner.isDestroyed()) {
+        owner.webContents.send('browser:show-blocked-toast', { url, type: isGame ? 'game' : 'ai' });
+      }
+      console.warn('[URLFilter] Blocked frame navigation to:', url);
     }
   });
 
   // Block new-window/popup creation — force links to open in a new tab
   webContents.setWindowOpenHandler(({ url }) => {
-    if (isAiBlocked(url, 'mainFrame')) {
-      auditLog.log('AI_POPUP_BLOCKED', { url });
+    const isGame = isGameBlocked(url);
+    const isAi = isAiBlocked(url, 'mainFrame');
+
+    if (isAi || isGame) {
+      auditLog.log(isGame ? 'GAME_POPUP_BLOCKED' : 'AI_POPUP_BLOCKED', { url });
       const owner = webContents.getOwnerBrowserWindow();
       if (owner && !owner.isDestroyed()) {
-        owner.webContents.send('browser:show-blocked-toast', { url });
+        owner.webContents.send('browser:show-blocked-toast', { url, type: isGame ? 'game' : 'ai' });
       }
       return { action: 'deny' };
     }
@@ -166,14 +264,29 @@ function attach(webContents) {
 
   // Block redirects to AI domains
   webContents.on('will-redirect', (event, url) => {
-    if (isAiBlocked(url, 'mainFrame')) {
+    // Block non-standard protocols on redirect to prevent triggering external software launches
+    try {
+      const parsed = new URL(url);
+      const protocol = parsed.protocol.toLowerCase();
+      const allowedProtocols = ['http:', 'https:', 'file:', 'data:', 'seb:'];
+      if (!allowedProtocols.includes(protocol)) {
+        event.preventDefault();
+        console.warn(`[URLFilter] Blocked external redirect protocol launch: ${url}`);
+        return;
+      }
+    } catch (e) {}
+
+    const isGame = isGameBlocked(url);
+    const isAi = isAiBlocked(url, 'mainFrame');
+
+    if (isAi || isGame) {
       event.preventDefault();
-      auditLog.log('AI_REDIRECT_BLOCKED', { url });
+      auditLog.log(isGame ? 'GAME_REDIRECT_BLOCKED' : 'AI_REDIRECT_BLOCKED', { url });
       const owner = webContents.getOwnerBrowserWindow();
       if (owner && !owner.isDestroyed()) {
-        owner.webContents.send('browser:show-blocked-toast', { url });
+        owner.webContents.send('browser:show-blocked-toast', { url, type: isGame ? 'game' : 'ai' });
       }
-      console.warn('[URLFilter] Blocked AI redirect to:', url);
+      console.warn('[URLFilter] Blocked redirect to:', url);
     }
   });
 
@@ -233,6 +346,14 @@ function isAiBlocked(url, resourceType = 'mainFrame') {
   // Block data: and javascript: URIs to prevent self-contained bypasses
   if (url && (url.startsWith('data:') || url.startsWith('javascript:'))) {
     return true;
+  }
+
+  // Block specific known AI paths on allowed domains (like Facebook/Instagram Meta AI)
+  if (url) {
+    const urlLower = url.toLowerCase();
+    if (urlLower.includes('/metaai') || urlLower.includes('/meta-ai') || urlLower.includes('metaai=') || urlLower.includes('meta_ai')) {
+      return true;
+    }
   }
 
   // Always allow internal / blank pages
@@ -355,7 +476,14 @@ function init() {
         if (isGoogleSearch) {
           try {
             const parsedUrl = new URL(url);
-            if (parsedUrl.searchParams.has('q') && parsedUrl.searchParams.get('udm') !== '14') {
+            const tbm = parsedUrl.searchParams.get('tbm');
+            const udm = parsedUrl.searchParams.get('udm');
+            
+            // Allow media search tabs (Images=2, Videos=3, News=7, Shopping=12, Forums=13)
+            const allowedUdms = ['2', '3', '6', '7', '12', '13'];
+            const hasMediaTab = tbm || (udm && allowedUdms.includes(udm));
+
+            if (parsedUrl.searchParams.has('q') && !hasMediaTab && udm !== '14') {
               parsedUrl.searchParams.set('udm', '14');
               console.log('[URLFilter] Redirecting Google search to Classic Web search:', parsedUrl.toString());
               callback({ redirectURL: parsedUrl.toString() });
@@ -367,16 +495,19 @@ function init() {
         }
       }
 
-      if (isAiBlocked(url, details.resourceType)) {
-        auditLog.log('AI_URL_BLOCKED', { url });
+      const isGame = isGameBlocked(url);
+      const isAi = isAiBlocked(url, details.resourceType);
 
-        if (details.resourceType === 'mainFrame' && details.webContentsId) {
+      if (isAi || isGame) {
+        auditLog.log(isGame ? 'GAME_URL_BLOCKED' : 'AI_URL_BLOCKED', { url });
+
+        if (details.webContentsId) {
           try {
             const wc = webContents.fromId(details.webContentsId);
             if (wc && !wc.isDestroyed()) {
               const owner = wc.getOwnerBrowserWindow();
               if (owner && !owner.isDestroyed()) {
-                owner.webContents.send('browser:show-blocked-toast', { url });
+                owner.webContents.send('browser:show-blocked-toast', { url, type: isGame ? 'game' : 'ai' });
               }
             }
           } catch (err) {
@@ -384,7 +515,7 @@ function init() {
           }
         }
 
-        console.warn('[URLFilter] WebRequest blocked AI navigation/resource request:', url);
+        console.warn('[URLFilter] WebRequest blocked request:', url);
         callback({ cancel: true });
       } else {
         callback({ cancel: false });
@@ -427,7 +558,7 @@ function init() {
   );
 }
 
-module.exports = { init, attach, isAiBlocked, getBuiltinAiDomains, isInputBlocked };
+module.exports = { init, attach, isAiBlocked, getBuiltinAiDomains, isInputBlocked, isGameBlocked };
 
 /**
  * Check if the user input in the address bar should be blocked because it contains AI.
@@ -438,9 +569,27 @@ function isInputBlocked(text) {
   if (!text) return false;
   const lower = text.trim().toLowerCase();
 
-  // 1. Check if the input contains the standalone word "ai"
-  if (/\bai\b/i.test(lower)) {
-    return true;
+  // 1. Check if the input contains general Game keywords
+  const GAME_KEYWORDS = [
+    'y8',
+    'poki',
+    'crazygames',
+    'pudge-wars',
+    'poker-project',
+    'pusoy',
+    'blackjack',
+    'casino',
+    'tetris',
+    'game',
+    'poker',
+    'arcade',
+    'wars'
+  ];
+
+  for (const keyword of GAME_KEYWORDS) {
+    if (lower.includes(keyword)) {
+      return true;
+    }
   }
 
   // 2. Check if the input contains general AI keywords
@@ -483,7 +632,7 @@ function isInputBlocked(text) {
 
   // 3. Check against built-in and extra blocked domains
   const tlds = ['com', 'org', 'net', 'edu', 'gov', 'co', 'io', 'ai', 'uk', 'us', 'ca', 'au', 'nz', 'de', 'fr', 'jp', 'cn', 'ru', 'in', 'br', 'za'];
-  const EXCLUDED_LABELS = ['google', 'microsoft', 'bing', 'github', 'huggingface', 'x', 'you'];
+  const EXCLUDED_LABELS = ['google', 'microsoft', 'bing', 'github', 'huggingface', 'x', 'you', 'chat'];
 
   const allDomains = [...BUILTIN_AI_DOMAINS];
   const cfg = config.get();

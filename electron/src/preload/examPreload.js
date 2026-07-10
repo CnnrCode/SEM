@@ -9,6 +9,14 @@
 
 const { ipcRenderer, webFrame } = require('electron');
 
+// Sanitize global scope to align with the Firefox User-Agent
+// Google Sign-In blocks logins if it sees a Firefox User-Agent but window.chrome is present.
+try {
+  webFrame.executeJavaScript('delete window.chrome;');
+} catch (err) {
+  console.error('[Preload] Failed to delete window.chrome:', err);
+}
+
 let cfg = null;
 let configApplied = false;
 let cfgZoomFactor = 1.0;
@@ -30,18 +38,26 @@ function applyConfig(receivedConfig) {
 
   // Apply text-selection restriction when blockCopyPaste is active
   if (!cfg || !cfg.features || cfg.features.blockCopyPaste !== false) {
-    const textSelectStyle = document.createElement('style');
-    textSelectStyle.textContent = `
-      * {
-        -webkit-user-select: none !important;
-        user-select: none !important;
-      }
-      input, textarea, [contenteditable] {
-        -webkit-user-select: text !important;
-        user-select: text !important;
-      }
-    `;
-    document.head.appendChild(textSelectStyle);
+    const inject = () => {
+      const textSelectStyle = document.createElement('style');
+      textSelectStyle.textContent = `
+        * {
+          -webkit-user-select: none !important;
+          user-select: none !important;
+        }
+        input, textarea, [contenteditable] {
+          -webkit-user-select: text !important;
+          user-select: text !important;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(textSelectStyle);
+    };
+    // Guard: run immediately if DOM is ready, otherwise wait for it
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', inject, { once: true });
+    } else {
+      inject();
+    }
   }
 }
 
@@ -50,11 +66,12 @@ ipcRenderer.on('seb:config', (_, receivedConfig) => {
   applyConfig(receivedConfig);
 });
 
-// Fallback: pull from main process in case the push was missed
-ipcRenderer.invoke('admin:getConfig').then(c => {
+// Fallback: pull minimal safe config from main process in case the push was missed.
+// Uses exam:getSafeConfig which only exposes feature flags — not passwords or sensitive fields.
+ipcRenderer.invoke('exam:getSafeConfig').then(c => {
   applyConfig(c);
 }).catch(err => {
-  console.error('[examPreload] Failed to load config via IPC fallback:', err);
+  console.error('[examPreload] Failed to load safe config via IPC fallback:', err);
 });
 
 // ─── Block copy/cut/paste ─────────────────────────────────────────────────────
@@ -198,9 +215,7 @@ function _setupGoogleAiShield() {
         div[data-share-url*="gemini"],
         div[class*="Sge"],
         /* Hide generative search prompt areas */
-        div[class*="gemini-"],
-        /* Navigation tabs: hide AI Mode tab */
-        a[href*="udm=14"] {
+        div[class*="gemini-"] {
           display: none !important;
         }
       `;
@@ -290,6 +305,13 @@ document.addEventListener('mousemove', (e) => {
   if (magnifierActive) {
     triggerCoordinatesReport();
   }
+
+  // Report proximity mouse events to the host page for the AI warning overlay hover check
+  if (e.clientY <= 120) {
+    ipcRenderer.sendToHost('guest-mousemove', { clientX: e.clientX, clientY: e.clientY });
+  } else {
+    ipcRenderer.sendToHost('guest-mousemove-leave');
+  }
 });
 
 document.addEventListener('scroll', () => {
@@ -310,3 +332,36 @@ document.addEventListener('scroll', () => {
 document.addEventListener('mousedown', () => {
   ipcRenderer.sendToHost('guest-click');
 });
+
+// Catch browser navigation/tab switching shortcuts (Ctrl + 1 to 9) inside webview
+document.addEventListener('keydown', (e) => {
+  const isControl = e.ctrlKey || e.metaKey;
+  const key = e.key.toLowerCase();
+
+  // Ctrl + Shift + T (Reopen last closed tab)
+  if (isControl && e.shiftKey && !e.altKey && key === 't') {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    ipcRenderer.sendToHost('tab-reopen-shortcut');
+    return;
+  }
+
+  // Ctrl + W (Close active tab)
+  if (isControl && !e.shiftKey && !e.altKey && key === 'w') {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    ipcRenderer.sendToHost('tab-close-shortcut');
+    return;
+  }
+
+  // Ctrl + 1 to 9 (Switch tabs)
+  if (isControl && !e.shiftKey && !e.altKey) {
+    const match = e.code.match(/^Digit([1-9])$/);
+    if (match) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const digit = parseInt(match[1], 10);
+      ipcRenderer.sendToHost('tab-switch-shortcut', { digit });
+    }
+  }
+}, true);

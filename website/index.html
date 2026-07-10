@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prodigy Browser — Secure Exam Browser</title>
+  <meta name="description" content="Prodigy Browser is a secure, locked-down exam browser for digital assessments. Download and set up in minutes." />
+  <meta property="og:title" content="Prodigy Browser — Secure Exam Browser" />
+  <meta property="og:description" content="Lock down any exam. Block AI, screen capture, shortcuts, and distractions with one click." />
+  <meta property="og:type" content="website" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: {
+              DEFAULT: '#040711',
+              light: '#090e1a',
+              lighter: '#121a2e',
+              border: 'rgba(255,255,255,0.06)',
+              borderHi: 'rgba(255,255,255,0.12)',
+            },
+            cyber: {
+              teal: '#06b6d4',
+              tealDark: '#0891b2',
+              emerald: '#10b981',
+              emeraldDark: '#059669',
+              amber: '#f59e0b',
+              red: '#ef4444',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Transition Constraints (Only Transform & Opacity, <300ms) */
+    .custom-transition {
+      transition-property: transform, opacity;
+      transition-duration: 250ms;
+      transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    /* Reduced Motion Respect */
+    @media (prefers-reduced-motion: reduce) {
+      .custom-transition {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+      }
+      .animate-pulse, .animate-bounce {
+        animation: none !important;
+      }
+    }
+
+    /* Grid overlay noise */
+    .grid-noise {
+      background-image: 
+        linear-gradient(rgba(6, 182, 212, 0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(6, 182, 212, 0.012) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+  </style>
+</head>
+<body class="bg-obsidian text-slate-100 font-sans selection:bg-cyber-teal selection:text-obsidian overflow-x-hidden relative grid-noise">
+
+  <!-- Top Glassmorphic Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 h-16 border-b border-obsidian-border bg-obsidian/75 backdrop-blur-xl flex items-center justify-between px-6 md:px-12">
+    <a href="#" class="flex items-center gap-3">
+      <img src="prodigy.png" alt="Prodigy Browser" class="w-8 h-8 object-contain rounded-lg" />
+      <span class="font-bold text-sm tracking-tight text-slate-200">PRODIGY <span class="text-cyber-teal">BROWSER</span></span>
+    </a>
+    
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#features" class="text-xs font-semibold text-slate-400 hover:text-slate-100 custom-transition">FEATURES</a>
+      <a href="#setup" class="text-xs font-semibold text-slate-400 hover:text-slate-100 custom-transition">SETUP GUIDE</a>
+      <a href="#presentations" class="text-xs font-semibold text-slate-400 hover:text-slate-100 custom-transition">RESOURCES</a>
+      <a href="#faq" class="text-xs font-semibold text-slate-400 hover:text-slate-100 custom-transition">FAQ</a>
+    </div>
+
+    <div>
+      <a href="#download" class="bg-cyber-teal hover:bg-cyber-tealDark text-obsidian text-xs font-bold px-4 py-2 rounded-lg custom-transition inline-block shadow-lg shadow-cyber-teal/10">
+        DOWNLOAD
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero Section (Asymmetric Layout) -->
+  <section class="min-height-screen pt-32 pb-20 px-6 md:px-12 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+    
+    <!-- Left Copy -->
+    <div class="lg:col-span-7 flex flex-col items-start text-left">
+      <div class="inline-flex items-center gap-2 px-3 py-1 bg-cyber-emerald/10 border border-cyber-emerald/25 text-cyber-emerald rounded-full text-[10px] tracking-widest font-mono uppercase mb-6">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyber-emerald animate-pulse"></span>
+        Lockdown Engine v1.0.0 Active
+      </div>
+      
+      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-none text-slate-100 mb-6 max-w-2xl">
+        Lock down every exam. <br />
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyber-teal to-cyber-emerald">Zero distractions.</span>
+      </h1>
+      
+      <p class="text-slate-400 text-base md:text-lg leading-relaxed mb-8 max-w-xl">
+        Prodigy Browser is a hardened kiosk framework designed specifically for high-stakes digital exams. It disables OS-level shortcuts, blocks screenshot capture tools, terminates local AI processes, and restricts exam content exclusively to safe whitelist domains.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4 mb-8">
+        <a href="Prodigy Browser Setup 1.0.0.exe" class="bg-cyber-teal hover:bg-cyber-tealDark text-obsidian text-sm font-bold px-8 py-4 rounded-xl flex items-center justify-center gap-3 custom-transition shadow-xl shadow-cyber-teal/15 hover:-translate-y-0.5" download>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+          Download Installer for Windows
+        </a>
+        <a href="#setup" class="border border-obsidian-borderHi hover:border-slate-500 text-slate-300 hover:text-slate-100 text-sm font-bold px-8 py-4 rounded-xl flex items-center justify-center gap-2 custom-transition hover:-translate-y-0.5">
+          Read Setup Guide
+        </a>
+      </div>
+
+      <div class="text-xs text-slate-500 font-mono">
+        Windows 10 / 11 &nbsp;•&nbsp; 64-bit &nbsp;•&nbsp; ~76 MB &nbsp;•&nbsp; Free for schools
+      </div>
+    </div>
+
+    <!-- Right Interactive Visual Anchor (Integrity Monitor) -->
+    <div class="lg:col-span-5 bg-obsidian-light border border-obsidian-borderHi p-6 rounded-2xl relative shadow-2xl overflow-hidden">
+      <!-- Glow Decor -->
+      <div class="absolute -top-16 -right-16 w-32 h-32 bg-cyber-teal/10 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div class="flex items-center justify-between border-b border-obsidian-border pb-4 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-cyber-teal"></span>
+          <span class="text-xs font-mono font-bold text-slate-300 tracking-wider">LOCKDOWN INTEGRITY MONITOR</span>
+        </div>
+        <span class="text-[10px] font-mono text-cyber-teal bg-cyber-teal/10 border border-cyber-teal/20 px-2 py-0.5 rounded">ONLINE</span>
+      </div>
+
+      <!-- Simulated Status Fields -->
+      <div class="space-y-3 mb-6">
+        <div class="flex items-center justify-between bg-obsidian/40 border border-obsidian-border p-3 rounded-lg">
+          <div class="text-xs font-mono text-slate-400">KEYBOARD SHORTCUT LOCK</div>
+          <span class="text-xs font-mono font-bold text-cyber-emerald">ACTIVE</span>
+        </div>
+        <div class="flex items-center justify-between bg-obsidian/40 border border-obsidian-border p-3 rounded-lg">
+          <div class="text-xs font-mono text-slate-400">SCREEN GUARD INTERCEPT</div>
+          <span class="text-xs font-mono font-bold text-cyber-emerald">ACTIVE</span>
+        </div>
+        <div class="flex items-center justify-between bg-obsidian/40 border border-obsidian-border p-3 rounded-lg">
+          <div class="text-xs font-mono text-slate-400">AI ENDPOINT RESOLVER</div>
+          <span class="text-xs font-mono font-bold text-cyber-emerald">STRICT</span>
+        </div>
+        <div class="flex items-center justify-between bg-obsidian/40 border border-obsidian-border p-3 rounded-lg">
+          <div class="text-xs font-mono text-slate-400">VIRTUAL MACHINE BLOCKER</div>
+          <span class="text-xs font-mono font-bold text-cyber-emerald">SHIELDED</span>
+        </div>
+      </div>
+
+      <!-- Live Terminal Console Log -->
+      <div class="bg-obsidian text-slate-300 p-4 rounded-xl border border-obsidian-border font-mono text-[10px] h-40 overflow-y-auto space-y-1 mb-4 flex flex-col justify-end" id="hero-console">
+        <div class="text-slate-500">[System] Initializing hooks...</div>
+        <div class="text-slate-500">[System] Clipboard cache cleared.</div>
+        <div class="text-cyber-teal">[System] Secure exam session established.</div>
+      </div>
+
+      <!-- Simulation Action Buttons -->
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="triggerThreat('Alt+Tab')" class="bg-obsidian-lighter hover:bg-slate-800 text-[11px] font-mono font-bold py-2 px-3 border border-obsidian-borderHi rounded-lg text-slate-300 hover:text-slate-100 custom-transition">
+          Simulate Alt+Tab
+        </button>
+        <button onclick="triggerThreat('AI API Call')" class="bg-obsidian-lighter hover:bg-slate-800 text-[11px] font-mono font-bold py-2 px-3 border border-obsidian-borderHi rounded-lg text-slate-300 hover:text-slate-100 custom-transition">
+          Simulate AI Search
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="border-t border-obsidian-border max-w-7xl mx-auto my-12"></div>
+
+  <!-- Features Section (Asymmetric Layout instead of 3-card grid) -->
+  <section id="features" class="py-20 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="mb-16">
+      <span class="text-cyber-teal font-mono text-[10px] tracking-widest uppercase font-bold">LOCKDOWN MATRIX</span>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-100 mt-2 tracking-tight">Security Built Layer by Layer</h2>
+      <p class="text-slate-400 text-sm md:text-base mt-3 max-w-xl">We replaced generic software rules with raw low-level operating system controls. Here is how Prodigy Browser enforces security.</p>
+    </div>
+
+    <!-- Asymmetric Feature Rows -->
+    <div class="space-y-16">
+
+      <!-- Feature Row 1 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <!-- Text -->
+        <div class="lg:col-span-6 space-y-6">
+          <div class="w-12 h-12 rounded-xl bg-cyber-teal/10 flex items-center justify-center border border-cyber-teal/20 text-cyber-teal">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/></svg>
+          </div>
+          <h3 class="text-2xl font-bold text-slate-100">OS-Level Shortcut & Keyboard Intercepts</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Standard software blockers check active windows, which is easily bypassed. Prodigy Browser registers low-level Win32 hooks that intercept key sequences directly at the OS kernel level. Disables <code class="bg-obsidian-light text-cyber-amber border border-obsidian-border px-1.5 py-0.5 rounded font-mono text-xs">Alt+Tab</code>, <code class="bg-obsidian-light text-cyber-amber border border-obsidian-border px-1.5 py-0.5 rounded font-mono text-xs">Win Key</code>, <code class="bg-obsidian-light text-cyber-amber border border-obsidian-border px-1.5 py-0.5 rounded font-mono text-xs">PrintScreen</code>, and system access inputs, rendering desktop switching impossible.
+          </p>
+          <ul class="space-y-2 text-xs font-mono text-slate-300">
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyber-teal"></span> Keyboard lock with automatic supervisor override bypass</li>
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyber-teal"></span> Virtual Machine context and hypervisor sandbox detection</li>
+          </ul>
+        </div>
+        
+        <!-- Visual Anchor (Keyboard Hook Table) -->
+        <div class="lg:col-span-6 bg-obsidian-light border border-obsidian-border p-6 rounded-2xl font-mono text-xs text-slate-400 shadow-xl">
+          <div class="text-slate-300 border-b border-obsidian-border pb-3 mb-4 font-bold tracking-wider">WIN32 HOOK CONFIGURATION</div>
+          <div class="space-y-2.5">
+            <div class="flex justify-between border-b border-obsidian-border/50 pb-2">
+              <span class="text-slate-500">HOOK ID</span>
+              <span class="text-slate-500">VIRTUAL CODE</span>
+              <span class="text-slate-500">STATE</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-300 font-bold">WH_KEYBOARD_LL</span>
+              <span class="text-cyber-teal">VK_LWIN / VK_RWIN</span>
+              <span class="text-cyber-emerald font-bold">BLOCKED (0x01)</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-300 font-bold">WH_KEYBOARD_LL</span>
+              <span class="text-cyber-teal">VK_TAB [Alt+Tab]</span>
+              <span class="text-cyber-emerald font-bold">BLOCKED (0x01)</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-300 font-bold">WH_KEYBOARD_LL</span>
+              <span class="text-cyber-teal">VK_ESCAPE [Ctrl+Esc]</span>
+              <span class="text-cyber-emerald font-bold">BLOCKED (0x01)</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-300 font-bold">WH_MOUSE_LL</span>
+              <span class="text-cyber-teal">VK_RBUTTON [Right-Click]</span>
+              <span class="text-cyber-emerald font-bold">BLOCKED (0x01)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Row 2 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <!-- Visual Anchor (Interactive Screen Guard Simulation) -->
+        <div class="lg:col-span-6 lg:order-last space-y-6">
+          <div class="w-12 h-12 rounded-xl bg-cyber-teal/10 flex items-center justify-center border border-cyber-teal/20 text-cyber-teal">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <h3 class="text-2xl font-bold text-slate-100">Screen Guard Block</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Prevents students from using screen captures, recording software, or remote desktops (like Discord, Zoom, or TeamViewer). Leveraging system-level window capture properties, the browser context displays as a flat black block to all external capturing tools while remaining fully visible to the student.
+          </p>
+          <ul class="space-y-2 text-xs font-mono text-slate-300">
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyber-teal"></span> Native window display protection prevents software-level scanning</li>
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyber-teal"></span> Automatic audit trail record generated upon unauthorized screen capture hooks</li>
+          </ul>
+        </div>
+        
+        <!-- Interactive Screen Guard Panel -->
+        <div class="lg:col-span-6 bg-obsidian-light border border-obsidian-border p-6 rounded-2xl relative shadow-xl">
+          <div class="flex items-center justify-between border-b border-obsidian-border pb-3 mb-4">
+            <span class="text-xs font-mono font-bold text-slate-300">SCREEN GRAB PROTECT SIMULATOR</span>
+            <button onclick="toggleScreenGuard()" class="text-[10px] font-mono bg-cyber-teal text-obsidian px-3 py-1 rounded font-bold hover:bg-cyber-tealDark custom-transition">
+              Toggle Screenshot Tool
+            </button>
+          </div>
+          <!-- Simulated Window screen -->
+          <div class="w-full aspect-[16/9] border border-obsidian-border rounded-xl relative overflow-hidden flex items-center justify-center transition-all duration-300" id="screenguard-viewport">
+            <!-- Simulated Secure Browser Screen -->
+            <div class="absolute inset-0 bg-[#0e1322] p-4 flex flex-col justify-between" id="screenguard-active-view">
+              <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-700/50 pb-2">
+                <span>Prodigy Exam Session</span>
+                <span class="text-cyber-emerald font-bold">PROCTOR ACTIVE</span>
+              </div>
+              <div class="text-center my-auto space-y-2">
+                <div class="text-sm font-bold text-slate-200">Question 14 of 40</div>
+                <div class="text-xs text-slate-400">Describe the structure of a binary search tree.</div>
+              </div>
+              <div class="text-[9px] font-mono text-slate-500 text-right">SECURE VIEWPORT</div>
+            </div>
+            
+            <!-- Simulated Captured Block Screen -->
+            <div class="absolute inset-0 bg-black flex flex-col items-center justify-center p-6 text-center opacity-0 pointer-events-none transition-opacity duration-300" id="screenguard-blocked-view">
+              <svg class="w-8 h-8 text-cyber-red mb-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+              <div class="text-xs font-mono font-bold text-cyber-red">BLACKOUT SCREEN DETECTED</div>
+              <div class="text-[9px] text-slate-500 mt-1 font-mono">Capture blocked by WDA_MONITOR configuration properties</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Row 3 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <!-- Text -->
+        <div class="lg:col-span-6 space-y-6">
+          <div class="w-12 h-12 rounded-xl bg-cyber-teal/10 flex items-center justify-center border border-cyber-teal/20 text-cyber-teal">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286Zm0 13.036h.008v.008H12v-.008Z"/></svg>
+          </div>
+          <h3 class="text-2xl font-bold text-slate-100">AI Endpoint Domain Shield</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Protects assessment integrity by blocking requests to over 50+ generative AI domains (including ChatGPT, Claude, Gemini, and local LLM backends). The browser validates outgoing packet resolution and automatically blocks access, redirecting unauthorized tabs immediately.
+          </p>
+          <ul class="space-y-2 text-xs font-mono text-slate-300">
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyber-teal"></span> Strict whitelist mapping for local and external domains</li>
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-cyber-teal"></span> Real-time network auditing logs with supervisor reporting</li>
+          </ul>
+        </div>
+        
+        <!-- Network Log Stream Visual Anchor -->
+        <div class="lg:col-span-6 bg-obsidian-light border border-obsidian-border p-6 rounded-2xl font-mono text-xs text-slate-400 shadow-xl relative overflow-hidden">
+          <div class="text-slate-300 border-b border-obsidian-border pb-3 mb-4 font-bold tracking-wider">RESOLVER BLOCK HISTORY (REAL-TIME)</div>
+          <div class="space-y-2.5 max-h-40 overflow-y-auto">
+            <div class="flex items-center gap-2 justify-between">
+              <span class="text-slate-500">[11:02:14]</span>
+              <span class="text-slate-300">RESOLVE exam.prodigyreview.ph</span>
+              <span class="text-cyber-emerald font-bold">ALLOWED</span>
+            </div>
+            <div class="flex items-center gap-2 justify-between">
+              <span class="text-slate-500">[11:02:19]</span>
+              <span class="text-cyber-red font-bold">RESOLVE chat.openai.com</span>
+              <span class="text-cyber-red font-bold bg-cyber-red/10 border border-cyber-red/25 px-1.5 py-0.25 rounded text-[10px]">BLOCKED</span>
+            </div>
+            <div class="flex items-center gap-2 justify-between">
+              <span class="text-slate-500">[11:02:22]</span>
+              <span class="text-slate-300">RESOLVE static.assets.ph</span>
+              <span class="text-cyber-emerald font-bold">ALLOWED</span>
+            </div>
+            <div class="flex items-center gap-2 justify-between">
+              <span class="text-slate-500">[11:02:25]</span>
+              <span class="text-cyber-red font-bold">RESOLVE api.anthropic.com</span>
+              <span class="text-cyber-red font-bold bg-cyber-red/10 border border-cyber-red/25 px-1.5 py-0.25 rounded text-[10px]">BLOCKED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="border-t border-obsidian-border max-w-7xl mx-auto my-12"></div>
+
+  <!-- Setup Guide Section -->
+  <section id="setup" class="py-20 px-6 md:px-12 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
+    
+    <!-- Left Column: Guide Text and Timeline Steps -->
+    <div class="lg:col-span-7 space-y-12">
+      <div>
+        <span class="text-cyber-teal font-mono text-[10px] tracking-widest uppercase font-bold">DEPLOYMENT GUIDE</span>
+        <h2 class="text-3xl md:text-4xl font-extrabold text-slate-100 mt-2 tracking-tight">Deploy in Under 5 Minutes</h2>
+        <p class="text-slate-400 text-sm mt-3">Follow these technical steps to install and lock down any Windows 10/11 system.</p>
+      </div>
+
+      <!-- Timeline Connector -->
+      <div class="space-y-12 border-l border-obsidian-border pl-6 relative">
+        
+        <!-- Step 1 -->
+        <div class="relative">
+          <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">1</span>
+          <h3 class="text-lg font-bold text-slate-200">Download the self-contained installer</h3>
+          <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+            Download the installer bundle (<code class="bg-obsidian-light text-cyber-teal font-mono border border-obsidian-border px-1.5 py-0.5 rounded">Prodigy Browser Setup 1.0.0.exe</code>). There are no secondary node or runtime dependencies. Everything required to run security blocks is packaged inside.
+          </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="relative">
+          <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">2</span>
+          <h3 class="text-lg font-bold text-slate-200">Run with Administrator Privilege</h3>
+          <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+            Right-click the executable and choose "Run as administrator". This allows the browser to register kernel-level keyboard listeners to prevent bypasses.
+          </p>
+          <div class="mt-3 p-3 bg-cyber-amber/10 border border-cyber-amber/20 rounded-lg text-cyber-amber text-xs flex gap-2">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            <span>Windows SmartScreen may warn about unsigned executable properties. Click <strong>More Info &rarr; Run Anyway</strong>.</span>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="relative">
+          <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">3</span>
+          <h3 class="text-lg font-bold text-slate-200">Set Admin & Exit Credentials</h3>
+          <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+            On the initial login run, you will be prompted to access the Admin Panel. Define a secure **Admin Password** (to access backend logs and setup) and an **Exit Password** (which must be inputted to close down the exam kiosk).
+          </p>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="relative">
+          <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">4</span>
+          <h3 class="text-lg font-bold text-slate-200">Initiate Secure Exam</h3>
+          <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+            Provide the whitelist target URL (default: <code class="bg-obsidian-light text-cyber-teal font-mono border border-obsidian-border px-1.5 py-0.5 rounded">prodigyreview.ph</code>). Clicking **Launch Exam** boots the machine into restricted kiosk mode immediately.
+          </p>
+          <div class="mt-3 p-3 bg-cyber-teal/10 border border-cyber-teal/20 rounded-lg text-slate-300 text-xs flex gap-2">
+            <svg class="w-4 h-4 flex-shrink-0 text-cyber-teal" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+            <span>To terminate any locked-down exam window: Press <code class="bg-obsidian-light border border-obsidian-border px-1 text-cyber-teal text-[10px] rounded font-mono font-bold">Ctrl+Shift+Alt+Q</code>, and input your Exit password.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right Column: Visual Anchor (Deployment Checklist Status) -->
+    <div class="lg:col-span-5 flex items-center justify-center">
+      <div class="w-full bg-obsidian-light border border-obsidian-border p-6 rounded-2xl relative shadow-xl font-mono text-xs text-slate-400 space-y-4">
+        <div class="text-slate-300 font-bold border-b border-obsidian-border pb-3 flex justify-between items-center">
+          <span>DEPLOYMENT CHECKLIST</span>
+          <span class="text-[10px] text-cyber-teal">STEP 4/4</span>
+        </div>
+        
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <span class="w-4 h-4 rounded bg-cyber-emerald/10 border border-cyber-emerald/30 flex items-center justify-center text-cyber-emerald">✓</span>
+            <div class="flex-1">
+              <span class="text-slate-200">Binary Downloaded</span>
+              <div class="text-[10px] text-slate-500">Prodigy Browser Setup 1.0.0.exe</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="w-4 h-4 rounded bg-cyber-emerald/10 border border-cyber-emerald/30 flex items-center justify-center text-cyber-emerald">✓</span>
+            <div class="flex-1">
+              <span class="text-slate-200">Win32 Hook Permissions</span>
+              <div class="text-[10px] text-slate-500">Administrator access verified</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="w-4 h-4 rounded bg-cyber-emerald/10 border border-cyber-emerald/30 flex items-center justify-center text-cyber-emerald">✓</span>
+            <div class="flex-1">
+              <span class="text-slate-200">Credentials Configured</span>
+              <div class="text-[10px] text-slate-500">Admin and exit passwords encrypted</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="w-4 h-4 rounded bg-cyber-teal/15 border border-cyber-teal/30 flex items-center justify-center text-cyber-teal animate-pulse">●</span>
+            <div class="flex-1">
+              <span class="text-slate-200">Exam Target Initialized</span>
+              <div class="text-[10px] text-cyber-teal">Ready to load prodigyreview.ph</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-obsidian-border pt-4 text-center">
+          <div class="text-[10px] text-slate-500">SYSTEM LOCKDOWN ENGINE IS COMPILED AND READY</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="border-t border-obsidian-border max-w-7xl mx-auto my-12"></div>
+
+  <!-- Downloads Section -->
+  <section id="download" class="py-20 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="text-center mb-16">
+      <span class="text-cyber-teal font-mono text-[10px] tracking-widest uppercase font-bold">RELEASE ASSETS</span>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-100 mt-2 tracking-tight">Acquire the Lockdown Bundle</h2>
+      <p class="text-slate-400 text-sm mt-3 max-w-xl mx-auto">Deploy the kiosk client directly on test machines, or distribute the helper extension to student browsers.</p>
+    </div>
+
+    <!-- Asymmetric side-by-side grids -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      
+      <!-- Primary: Windows Kiosk App -->
+      <div class="lg:col-span-7 bg-obsidian-light border-2 border-cyber-teal/30 p-8 rounded-2xl flex flex-col justify-between relative overflow-hidden shadow-2xl">
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-cyber-teal/5 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div class="bg-cyber-teal/10 border border-cyber-teal/20 text-cyber-teal font-mono text-[10px] px-3 py-1 rounded-full uppercase font-bold">
+              Standalone Desktop App
+            </div>
+            <span class="text-xs font-mono text-slate-400">Windows OS Only</span>
+          </div>
+
+          <h3 class="text-2xl font-bold text-slate-100 mb-4">Prodigy Kiosk Browser</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            The complete operating system lockdown container. Blocks all external shortcut hooks, overlays, screen grabs, process switching, and unauthorized web pages. Standard deployment for school-owned test machines and centers.
+          </p>
+
+          <div class="grid grid-cols-3 gap-4 border-t border-b border-obsidian-border py-4 mb-8">
+            <div>
+              <div class="text-[10px] font-mono text-slate-500">VERSION</div>
+              <div class="text-xs text-slate-200 font-mono mt-1 font-bold">1.0.0 Stable</div>
+            </div>
+            <div>
+              <div class="text-[10px] font-mono text-slate-500">FILE SIZE</div>
+              <div class="text-xs text-slate-200 font-mono mt-1 font-bold">~76.5 MB</div>
+            </div>
+            <div>
+              <div class="text-[10px] font-mono text-slate-500">ARCHITECTURE</div>
+              <div class="text-xs text-slate-200 font-mono mt-1 font-bold">Windows x64</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <a href="Prodigy Browser Setup 1.0.0.exe" class="w-full bg-cyber-teal hover:bg-cyber-tealDark text-obsidian text-sm font-bold py-4 rounded-xl flex items-center justify-center gap-3 custom-transition shadow-xl shadow-cyber-teal/15 hover:-translate-y-0.5" download>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Download Setup 1.0.0.exe
+          </a>
+        </div>
+      </div>
+
+      <!-- Secondary: Chrome/Edge Extension -->
+      <div class="lg:col-span-5 bg-obsidian-light border border-obsidian-border p-8 rounded-2xl flex flex-col justify-between relative overflow-hidden">
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div class="bg-cyber-emerald/10 border border-cyber-emerald/20 text-cyber-emerald font-mono text-[10px] px-3 py-1 rounded-full uppercase font-bold">
+              Browser Shield
+            </div>
+            <span class="text-xs font-mono text-slate-400">Extension MV3</span>
+          </div>
+
+          <h3 class="text-2xl font-bold text-slate-100 mb-4">Anti-Cheat Shield</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-6">
+            A lightweight extension for Google Chrome or Microsoft Edge that locks focus to the exam window and monitors navigation paths. Ideal for BYOD browser exams.
+          </p>
+
+          <div class="bg-obsidian border border-obsidian-border rounded-xl p-4 mb-6 font-mono text-[10px] text-slate-400 space-y-1.5">
+            <div>1. Extract the downloaded extension ZIP folder</div>
+            <div>2. Navigate to <code class="text-cyber-teal">chrome://extensions</code></div>
+            <div>3. Enable developer toggles in the top-right</div>
+            <div>4. Choose "Load unpacked" &rarr; select the folder</div>
+          </div>
+        </div>
+
+        <div>
+          <a href="Prodigy Anti-Cheat Shield 1.0.0.zip" class="w-full border border-cyber-emerald/40 hover:border-cyber-emerald text-cyber-emerald text-sm font-bold py-4 rounded-xl flex items-center justify-center gap-3 custom-transition hover:bg-cyber-emerald/5 hover:-translate-y-0.5" download>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Download Extension 1.0.0.zip
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="border-t border-obsidian-border max-w-7xl mx-auto my-12"></div>
+
+  <!-- Presentations & Resources Section (Asymmetric Grid Layout) -->
+  <section id="presentations" class="py-20 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      
+      <!-- Left: Interactive Resource Tabs -->
+      <div class="lg:col-span-6 space-y-6">
+        <div>
+          <span class="text-cyber-teal font-mono text-[10px] tracking-widest uppercase font-bold">RESOURCES</span>
+          <h2 class="text-3xl md:text-4xl font-extrabold text-slate-100 mt-2 tracking-tight">Briefings & Documentation</h2>
+          <p class="text-slate-400 text-sm mt-3">Learn more about the security frameworks, performance limits, and system audits built into our engine.</p>
+        </div>
+
+        <div class="space-y-3" id="pres-accordion-list">
+          
+          <!-- Pres Item 1 -->
+          <div class="bg-obsidian-light border border-obsidian-border rounded-xl overflow-hidden cursor-pointer" onclick="setActivePres(0)">
+            <div class="p-5 flex justify-between items-center hover:bg-obsidian-lighter/50 custom-transition">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-mono text-cyber-teal">01</span>
+                <span class="text-sm font-bold text-slate-200">Prodigy Browser Overview</span>
+              </div>
+              <svg class="w-4 h-4 text-slate-400 transform transition-transform duration-200" id="pres-arrow-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+            </div>
+            <div class="px-5 pb-5 hidden text-xs text-slate-400 leading-relaxed border-t border-obsidian-border pt-4" id="pres-body-0">
+              A comprehensive technical briefing on SecureExam Browser (SEB) covering its full architecture, all lockdown mechanisms, AI blocking strategies, URL filtering, and audit log systems.
+              <div class="mt-3 flex justify-end">
+                <a href="Presentations/Prodigy Browswer Presentation.html" target="_blank" class="text-cyber-teal font-bold hover:underline flex items-center gap-1">
+                  Open Presentation
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pres Item 2 -->
+          <div class="bg-obsidian-light border border-obsidian-border rounded-xl overflow-hidden cursor-pointer" onclick="setActivePres(1)">
+            <div class="p-5 flex justify-between items-center hover:bg-obsidian-lighter/50 custom-transition">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-mono text-cyber-teal">02</span>
+                <span class="text-sm font-bold text-slate-200">Comparison with Competitors</span>
+              </div>
+              <svg class="w-4 h-4 text-slate-400 transform transition-transform duration-200" id="pres-arrow-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+            </div>
+            <div class="px-5 pb-5 hidden text-xs text-slate-400 leading-relaxed border-t border-obsidian-border pt-4" id="pres-body-1">
+              A side-by-side comparison of Prodigy Browser against competing exam browser solutions, highlighting security features, ease of deployment, and cost advantages.
+              <div class="mt-3 flex justify-end">
+                <a href="Presentations/Comparison.html" target="_blank" class="text-cyber-teal font-bold hover:underline flex items-center gap-1">
+                  Open Comparison
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pres Item 3 -->
+          <div class="bg-obsidian-light border border-obsidian-border rounded-xl overflow-hidden cursor-pointer" onclick="setActivePres(2)">
+            <div class="p-5 flex justify-between items-center hover:bg-obsidian-lighter/50 custom-transition">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-mono text-cyber-teal">03</span>
+                <span class="text-sm font-bold text-slate-200">Extension Architecture</span>
+              </div>
+              <svg class="w-4 h-4 text-slate-400 transform transition-transform duration-200" id="pres-arrow-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+            </div>
+            <div class="px-5 pb-5 hidden text-xs text-slate-400 leading-relaxed border-t border-obsidian-border pt-4" id="pres-body-2">
+              Detailed overview of the Prodigy Browser Extension — how it integrates with the exam platform, its additional security features, and deployment instructions for IT staff.
+              <div class="mt-3 flex justify-end">
+                <a href="Presentations/Prodigy Extension.html" target="_blank" class="text-cyber-teal font-bold hover:underline flex items-center gap-1">
+                  Open Overview
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: Preview Display Card (Visual Anchor) -->
+      <div class="lg:col-span-6 bg-obsidian-light border border-obsidian-border p-8 rounded-2xl flex flex-col justify-between shadow-xl">
+        <div>
+          <div class="text-[10px] font-mono text-slate-500 mb-2 uppercase">Resource Details</div>
+          <h4 class="text-xl font-bold text-slate-200 mb-4" id="preview-title">Select a resource to review</h4>
+          <p class="text-slate-400 text-xs leading-relaxed mb-6" id="preview-desc">
+            Technical slideshows and document summaries are available. Use the resource list to switch context and preview layout details.
+          </p>
+        </div>
+        
+        <div class="border-t border-obsidian-border pt-6 flex items-center justify-between">
+          <span class="text-xs font-mono text-slate-500" id="preview-meta">NO SELECTION</span>
+          <a href="#" target="_blank" class="bg-obsidian-lighter border border-obsidian-borderHi text-slate-300 hover:text-slate-100 font-mono text-xs font-bold py-2.5 px-4 rounded-lg custom-transition inline-flex items-center gap-2" id="preview-link" style="display:none">
+            Launch Document
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="border-t border-obsidian-border max-w-7xl mx-auto my-12"></div>
+
+  <!-- FAQ Section (Border-hover accordions) -->
+  <section id="faq" class="py-20 px-6 md:px-12 max-w-4xl mx-auto">
+    <div class="text-center mb-16">
+      <span class="text-cyber-teal font-mono text-[10px] tracking-widest uppercase font-bold">SUPPORT DEPT</span>
+      <h2 class="text-3xl font-extrabold text-slate-100 mt-2 tracking-tight">System FAQ</h2>
+      <p class="text-slate-400 text-sm mt-3">Answers to architectural and troubleshooting questions regarding the Kiosk client.</p>
+    </div>
+
+    <div class="space-y-4">
+      
+      <!-- FAQ item 1 -->
+      <div class="bg-obsidian-light border border-obsidian-border hover:border-obsidian-borderHi rounded-xl overflow-hidden custom-transition">
+        <button class="w-full p-6 text-left flex justify-between items-center gap-4 focus:outline-none" onclick="toggleFaq(0)">
+          <span class="text-sm font-bold text-slate-200">Why does Windows SmartScreen flag the installer?</span>
+          <svg class="w-4 h-4 text-slate-500 transform transition-transform duration-200" id="faq-arrow-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </button>
+        <div class="px-6 pb-6 text-xs text-slate-400 leading-relaxed hidden" id="faq-body-0">
+          The installer bundle runs native OS-level keyboard hooks and requires Administrator permissions. Because the setup client is self-compiled for institutional environments and lacks commercial certificate signing, Windows flags the executable file. It is completely safe. Select <strong>More info &rarr; Run Anyway</strong> to proceed.
+        </div>
+      </div>
+
+      <!-- FAQ item 2 -->
+      <div class="bg-obsidian-light border border-obsidian-border hover:border-obsidian-borderHi rounded-xl overflow-hidden custom-transition">
+        <button class="w-full p-6 text-left flex justify-between items-center gap-4 focus:outline-none" onclick="toggleFaq(1)">
+          <span class="text-sm font-bold text-slate-200">Both shortcuts launch the Admin Panel on fresh installation. Why?</span>
+          <svg class="w-4 h-4 text-slate-500 transform transition-transform duration-200" id="faq-arrow-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </button>
+        <div class="px-6 pb-6 text-xs text-slate-400 leading-relaxed hidden" id="faq-body-1">
+          This behavior is intentional. On a fresh deployment, the application cannot secure exams without passwords and settings. It bypasses kiosk launch and opens the setup dashboard directly. Once credentials are set and saved, the <strong>Prodigy Browser</strong> shortcut loads exam mode immediately on subsequent launches.
+        </div>
+      </div>
+
+      <!-- FAQ item 3 -->
+      <div class="bg-obsidian-light border border-obsidian-border hover:border-obsidian-borderHi rounded-xl overflow-hidden custom-transition">
+        <button class="w-full p-6 text-left flex justify-between items-center gap-4 focus:outline-none" onclick="toggleFaq(2)">
+          <span class="text-sm font-bold text-slate-200">How do supervisors exit the locked exam kiosk?</span>
+          <svg class="w-4 h-4 text-slate-500 transform transition-transform duration-200" id="faq-arrow-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </button>
+        <div class="px-6 pb-6 text-xs text-slate-400 leading-relaxed hidden" id="faq-body-2">
+          Press <code class="bg-obsidian border border-obsidian-border px-1.5 py-0.5 rounded text-cyber-teal font-mono text-[10px]">Ctrl+Shift+Alt+Q</code> on the target computer. An admin password window will prompt. Enter the supervisor key config defined during initial deployment to close down the browser container.
+        </div>
+      </div>
+
+      <!-- FAQ item 4 -->
+      <div class="bg-obsidian-light border border-obsidian-border hover:border-obsidian-borderHi rounded-xl overflow-hidden custom-transition">
+        <button class="w-full p-6 text-left flex justify-between items-center gap-4 focus:outline-none" onclick="toggleFaq(3)">
+          <span class="text-sm font-bold text-slate-200">Is an active internet connection required during setup?</span>
+          <svg class="w-4 h-4 text-slate-500 transform transition-transform duration-200" id="faq-arrow-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </button>
+        <div class="px-6 pb-6 text-xs text-slate-400 leading-relaxed hidden" id="faq-body-3">
+          No. The setup executable is completely self-contained. However, once in active exam kiosk mode, the browser retrieves layout properties and pages from <code class="text-cyber-teal font-mono">prodigyreview.ph</code>, so local internet connection is required to load testing portals.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-obsidian border-t border-obsidian-border py-12 px-6 md:px-12">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <img src="prodigy.png" alt="Prodigy Browser" class="w-6 h-6 object-contain rounded-lg opacity-80" />
+        <span class="text-xs text-slate-500 font-bold tracking-widest font-mono">&copy; 2026 PRODIGY BROWSER</span>
+      </div>
+      <p class="text-slate-500 text-xs text-center md:text-right">
+        SecureExam Framework • Configured for **Prodigy Review PH**
+      </p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // Console log threat simulator logic (Hero Section)
+    function triggerThreat(type) {
+      const consoleEl = document.getElementById('hero-console');
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      let message = '';
+      if (type === 'Alt+Tab') {
+        message = `<div class="text-cyber-red animate-pulse">[${time}] WARN: Keyboard hook intercepted Alt+Tab action. Switch request discarded.</div>`;
+      } else if (type === 'AI API Call') {
+        message = `<div class="text-cyber-red animate-pulse">[${time}] BLOCK: DNS lookup to api.openai.com aborted. Access Denied.</div>`;
+      }
+      
+      consoleEl.innerHTML += message;
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    // Screen Guard simulator logic (Features Section)
+    let screenGuardState = false;
+    function toggleScreenGuard() {
+      screenGuardState = !screenGuardState;
+      const secureView = document.getElementById('screenguard-active-view');
+      const blockedView = document.getElementById('screenguard-blocked-view');
+      
+      if (screenGuardState) {
+        secureView.classList.add('opacity-0');
+        blockedView.classList.remove('opacity-0');
+        blockedView.classList.add('opacity-100');
+      } else {
+        secureView.classList.remove('opacity-0');
+        blockedView.classList.remove('opacity-100');
+        blockedView.classList.add('opacity-0');
+      }
+    }
+
+    // Presentations Accordion and Detail Preview Logic
+    const presentations = [
+      {
+        title: "Prodigy Browser Overview",
+        desc: "A comprehensive technical briefing on SecureExam Browser (SEB) covering its full architecture, all lockdown mechanisms, AI blocking strategies, URL filtering, and audit log systems.",
+        meta: "SLIDESHOW • 24 PAGES • HTML BRIEFING",
+        link: "Presentations/Prodigy Browswer Presentation.html"
+      },
+      {
+        title: "Comparison with Competitors",
+        desc: "A side-by-side comparison of Prodigy Browser against competing exam browser solutions, highlighting security features, ease of deployment, and cost advantages.",
+        meta: "COMPARISON CHART • HTML DOCUMENT",
+        link: "Presentations/Comparison.html"
+      },
+      {
+        title: "Extension Architecture",
+        desc: "Detailed overview of the Prodigy Browser Extension — how it integrates with the exam platform, its additional security features, and deployment instructions for IT staff.",
+        meta: "ARCHITECTURE SCHEMATIC • MANIFEST V3",
+        link: "Presentations/Prodigy Extension.html"
+      }
+    ];
+
+    let currentPresIdx = null;
+
+    function setActivePres(index) {
+      // Toggle accordion bodies
+      for (let i = 0; i < 3; i++) {
+        const bodyEl = document.getElementById(`pres-body-${i}`);
+        const arrowEl = document.getElementById(`pres-arrow-${i}`);
+        if (i === index && currentPresIdx !== index) {
+          bodyEl.classList.remove('hidden');
+          arrowEl.classList.add('rotate-180');
+        } else {
+          bodyEl.classList.add('hidden');
+          arrowEl.classList.remove('rotate-180');
+        }
+      }
+
+      // Update right details card
+      const previewTitle = document.getElementById('preview-title');
+      const previewDesc = document.getElementById('preview-desc');
+      const previewMeta = document.getElementById('preview-meta');
+      const previewLink = document.getElementById('preview-link');
+
+      if (currentPresIdx === index) {
+        // Toggle off
+        currentPresIdx = null;
+        previewTitle.innerText = "Select a resource to review";
+        previewDesc.innerText = "Technical slideshows and document summaries are available. Use the resource list to switch context and preview layout details.";
+        previewMeta.innerText = "NO SELECTION";
+        previewLink.style.display = 'none';
+      } else {
+        // Set active
+        currentPresIdx = index;
+        const p = presentations[index];
+        previewTitle.innerText = p.title;
+        previewDesc.innerText = p.desc;
+        previewMeta.innerText = p.meta;
+        previewLink.href = p.link;
+        previewLink.style.display = 'inline-flex';
+      }
+    }
+
+    // FAQ Accordion Logic
+    function toggleFaq(index) {
+      const body = document.getElementById(`faq-body-${index}`);
+      const arrow = document.getElementById(`faq-arrow-${index}`);
+      
+      const isHidden = body.classList.contains('hidden');
+      
+      // Close all first for clean single-accordion behavior
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`faq-body-${i}`).classList.add('hidden');
+        document.getElementById(`faq-arrow-${i}`).classList.remove('rotate-180');
+      }
+
+      if (isHidden) {
+        body.classList.remove('hidden');
+        arrow.classList.add('rotate-180');
+      }
+    }
+
+    // Set default presentation on load
+    setActivePres(0);
+  </script>
+</body>
+</html>

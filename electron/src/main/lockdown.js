@@ -40,14 +40,8 @@ const BLOCKED_SHORTCUTS = [
   'Ctrl+Shift+J',
   'Ctrl+Shift+C',
   'Ctrl+U',             // View source
-  // Navigation (extra safety)
-  'F5',
-  'Ctrl+R',
-  'Ctrl+Shift+R',
-  'Ctrl+F5',
   // New window (keep blocked, but not new tab)
   'Ctrl+N',
-  'Ctrl+W',
   // Address bar
   'Ctrl+L',
   'Alt+D',
@@ -123,38 +117,14 @@ function _removePlatformLockdown() {
   }
 }
 
-// Windows: Disable Task Manager via registry + block Win key via registry tweak
+// Windows: Skip registry modifications and taskbar hiding to behave like a standard browser
 function _windowsLockdown() {
-  const commands = [
-    // Disable Task Manager
-    `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" /v DisableTaskMgr /t REG_DWORD /d 1 /f`,
-    // Disable context menu on taskbar
-    `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" /v NoTrayContextMenu /t REG_DWORD /d 1 /f`,
-    // Hide taskbar
-    `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3" /v Settings /t REG_BINARY /d 28000000FE000000 /f`,
-  ];
-
-  commands.forEach((cmd) => {
-    exec(cmd, (err) => {
-      if (err) console.error('[Lockdown] Registry cmd failed:', err.message);
-    });
-  });
-
-  // Restart Explorer to apply taskbar hide
-  exec('taskkill /f /im explorer.exe', () => {
-    setTimeout(() => exec('start explorer.exe'), 1500);
-  });
+  console.log('[Lockdown] Windows deep lockdown skipped (standard browser behavior).');
 }
 
-// Restore Windows settings
+// Restore Windows settings (no-op since lockdown is simplified)
 function _windowsUnlockdown() {
-  const commands = [
-    `reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" /v DisableTaskMgr /f`,
-    `reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" /v NoTrayContextMenu /f`,
-  ];
-  commands.forEach((cmd) => exec(cmd, () => {}));
-  // Restore taskbar
-  exec('start explorer.exe', () => {});
+  console.log('[Lockdown] Windows deep lockdown cleared.');
 }
 
 // macOS: nothing extra needed — globalShortcut + kiosk handles most cases
@@ -180,8 +150,12 @@ function setupInputBarrier(window) {
     const isMeta = input.meta;
     const key = input.key.toLowerCase();
 
-    // DevTools shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U) are already blocked
-    // at the globalShortcut level via BLOCKED_SHORTCUTS — no extra handling needed here.
+    // DevTools shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U)
+    if (key === 'f12' || (isControl && isShift && (key === 'i' || key === 'j' || key === 'c')) || (isControl && key === 'u')) {
+      event.preventDefault();
+      auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'DevTools' });
+      return;
+    }
 
     // Keyboard Shortcuts (General Lockdown)
     if (!cfg || cfg.features.blockKeyboardShortcuts !== false) {
@@ -197,16 +171,11 @@ function setupInputBarrier(window) {
         auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Alt+Tab' });
         return;
       }
-      // F5, Ctrl+R
-      if (key === 'f5' || (isControl && key === 'r')) {
+      // F5 and Ctrl+R are bypassed here as they are handled globally for browser tab reloads.
+      // Ctrl+N (New Window)
+      if (isControl && key === 'n') {
         event.preventDefault();
-        auditLog.log('SHORTCUT_BLOCKED', { shortcut: key.toUpperCase() });
-        return;
-      }
-      // Ctrl+N (New Window), Ctrl+W (Close Window)
-      if (isControl && (key === 'n' || key === 'w')) {
-        event.preventDefault();
-        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Ctrl+' + key.toUpperCase() });
+        auditLog.log('SHORTCUT_BLOCKED', { shortcut: 'Ctrl+N' });
         return;
       }
       // Ctrl+P (Print), Ctrl+S (Save)

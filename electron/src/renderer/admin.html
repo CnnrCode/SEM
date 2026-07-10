@@ -15,7 +15,9 @@
 <div id="auth-gate" class="auth-gate">
   <div class="auth-card">
     <div class="auth-logo">
-      <div class="logo-icon">🔒</div>
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      </div>
       <h1>Prodigy Browser</h1>
       <p class="auth-subtitle">Admin Configuration Panel</p>
     </div>
@@ -36,7 +38,7 @@
       </button>
     </div>
     <p class="auth-note" id="first-run-note" style="display:none">
-      ✨ First run — no password set yet. Click Unlock to continue.
+      First run — no password set yet. Click Unlock to continue.
     </p>
     <p class="app-version" id="app-version"></p>
   </div>
@@ -48,7 +50,9 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-icon-sm">🔒</div>
+      <div class="logo-icon-sm">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      </div>
       <span>Prodigy</span>
     </div>
 
@@ -60,6 +64,10 @@
       <button class="nav-item" data-section="security">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         Security
+      </button>
+      <button class="nav-item" data-section="remotesync">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+        Central Server
       </button>
       <button class="nav-item" data-section="whitelist">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -99,28 +107,36 @@
 
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon" style="background: linear-gradient(135deg,#4f8ef7,#6366f1)">🌐</div>
+          <div class="stat-icon" style="background: linear-gradient(135deg,#4f8ef7,#6366f1)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          </div>
           <div class="stat-info">
             <span class="stat-label">Exam URL</span>
             <span class="stat-value" id="dash-exam-url">Not set</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon" style="background: linear-gradient(135deg,#10b981,#059669)">✅</div>
+          <div class="stat-icon" style="background: linear-gradient(135deg,#10b981,#059669)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>
+          </div>
           <div class="stat-info">
             <span class="stat-label">Allowed Domains</span>
             <span class="stat-value" id="dash-domains">0</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706)">🔐</div>
+          <div class="stat-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
           <div class="stat-info">
             <span class="stat-label">Exit Password</span>
             <span class="stat-value" id="dash-exit-pw">Not set</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon" style="background: linear-gradient(135deg,#ec4899,#db2777)">📋</div>
+          <div class="stat-icon" style="background: linear-gradient(135deg,#ec4899,#db2777)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          </div>
           <div class="stat-info">
             <span class="stat-label">Log Sessions</span>
             <span class="stat-value" id="dash-log-count">0</span>
@@ -162,9 +178,107 @@
           <div class="toggle-list" id="feature-toggles">
             <!-- Populated by admin.js -->
           </div>
+
+          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+            <div class="form-group">
+              <label for="multi-monitor-select" style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Multi-Monitor Policy</label>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5;">
+                Choose how the browser reacts when multiple monitors are connected during an exam session.
+              </p>
+              <select id="multi-monitor-select" class="select">
+                <option value="block">Block Exam (Show fullscreen warning overlay)</option>
+                <option value="blackout">Blackout Screens (Lock secondary screens with black window)</option>
+                <option value="allow">Allow (Do not restrict multiple monitors)</option>
+              </select>
+            </div>
+          </div>
+
           <div class="form-actions mt-6">
             <button class="btn btn-primary" id="save-security-btn">Save Security Settings</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Central Server Settings ── -->
+    <section id="section-remotesync" class="section">
+      <div class="section-header">
+        <h2>Central Server Settings</h2>
+        <p>Configure client connection to the central examination management console</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Connection Parameters</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="remote-server-url">Management Server URL</label>
+            <input type="url" id="remote-server-url" placeholder="https://api.exam-control.school.edu/api" autocomplete="off" />
+            <span class="form-hint">The secure API endpoint for fetching remote configurations and uploading heartbeats.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="client-auth-token">Client Access Token</label>
+            <input type="password" id="client-auth-token" placeholder="Enter secure authentication token" autocomplete="new-password" />
+            <span class="form-hint">Used to verify and authenticate this client instance with the remote server.</span>
+          </div>
+          
+          <div id="connection-status-panel" class="connection-status-panel mt-4 inactive">
+            <span class="status-dot"></span>
+            <span id="connection-status-text">Status: Not Configured</span>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-ghost" id="test-connection-btn">Test Connection</button>
+            <button class="btn btn-primary" id="save-server-btn">Save Server Settings</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-6">
+        <div class="card-header"><h3>Remote Capabilities</h3></div>
+        <div class="card-body">
+          <div class="toggle-list">
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <span class="toggle-name">Sync Config on Startup</span>
+                <span class="toggle-desc">Automatically download allowed domains, blocked websites, passwords and policies from the remote server when the browser starts.</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-syncConfigOnStartup" />
+                <span class="toggle-thumb"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <span class="toggle-name">Real-time Log Streaming</span>
+                <span class="toggle-desc">Instantly upload audit log records (such as shortcut locks, app exits, and screen capture blocks) to the central management database.</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-remoteTelemetry" />
+                <span class="toggle-thumb"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <span class="toggle-name">Telemetry Heartbeat</span>
+                <span class="toggle-desc">Transmit periodic status telemetry packages (displays count, tab focus status, active tab details) to the server every 30 seconds.</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-clientHeartbeat" />
+                <span class="toggle-thumb"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-6">
+        <div class="card-header"><h3>Manual Sync Action</h3></div>
+        <div class="card-body">
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.6;">
+            Force a manual refresh to fetch the latest configurations from the central server immediately. Local configurations will be updated.
+          </p>
+          <button class="btn btn-ghost" id="sync-now-btn" disabled>Sync Configuration Now</button>
         </div>
       </div>
     </section>

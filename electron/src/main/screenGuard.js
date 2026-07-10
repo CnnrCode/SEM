@@ -60,9 +60,10 @@ let _aiProcessWatchdog = null;
 
 function startSnippingWatchdog() {
   if (process.platform !== 'win32') return;
+  // 8 s is enough: the Snipping Tool takes several seconds to open anyway.
   _snippingWatchdog = setInterval(() => {
     _blockSnippingToolWindows();
-  }, 3000);
+  }, 8000);
 }
 
 function stopSnippingWatchdog() {
@@ -74,9 +75,10 @@ function stopSnippingWatchdog() {
 
 function startAiProcessWatchdog() {
   if (process.platform !== 'win32') return;
+  // 10 s is sufficient; AI desktop apps are not quick to open.
   _aiProcessWatchdog = setInterval(() => {
     _blockAiProcesses();
-  }, 4000);
+  }, 10000);
 }
 
 function stopAiProcessWatchdog() {
@@ -94,6 +96,7 @@ function _blockSnippingToolWindows() {
     'ShareX.exe',
     'Greenshot.exe',
     'Lightshot.exe',
+    'Taskmgr.exe',          // Block Task Manager (bypass via taskbar right-click)
   ];
   processes.forEach((p) => {
     exec(`taskkill /f /im "${p}" 2>nul`, () => {});
@@ -128,9 +131,10 @@ function startClipboardWatchdog() {
   } catch (err) {
     _lastClipboardText = '';
   }
+  // 4 s still gives near-real-time detection of AI-paste.
   _clipboardWatchdog = setInterval(() => {
     _checkClipboard();
-  }, 2000);
+  }, 4000);
   console.log('[ScreenGuard] Clipboard watchdog started.');
 }
 

@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEB vs Prodigy Shield — Comparative Briefing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --yellow:#FDC800;--surface:#FBFBF9;--navy:#1C293C;--red:#DC2626;
+  --green:#15803D;--green-bg:#DCFCE7;--red-bg:#FEE2E2;--black:#000;
+  --shadow:4px 4px 0 var(--black);--shadow-sm:2px 2px 0 var(--black);
+  --border:3px solid var(--black);
+}
+html{font-size:16px}
+body{background:var(--navy);color:var(--navy);font-family:'JetBrains Mono',monospace;overflow:hidden}
+.deck{width:100vw;height:100vh;position:relative}
+.slide{position:absolute;inset:0;display:none;overflow:hidden}
+.slide.active{display:flex}
+.slide::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px);pointer-events:none;z-index:100}
+.corner-brackets{position:absolute;inset:16px;pointer-events:none;z-index:50}
+.corner-brackets::before,.corner-brackets::after,.corner-brackets .cb-br,.corner-brackets .cb-bl{content:'';position:absolute;width:28px;height:28px;border-color:var(--black);border-style:solid}
+.corner-brackets::before{top:0;left:0;border-width:3px 0 0 3px}
+.corner-brackets::after{top:0;right:0;border-width:3px 3px 0 0}
+.corner-brackets .cb-br{bottom:0;right:0;border-width:0 3px 3px 0}
+.corner-brackets .cb-bl{bottom:0;left:0;border-width:0 0 3px 3px}
+.meta-label{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;background:var(--black);color:var(--yellow);padding:2px 8px;display:inline-block;user-select:none}
+.rotated-text{position:absolute;font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--black);opacity:.35;user-select:none;white-space:nowrap}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:700;line-height:1.08}
+h1{font-size:clamp(2.4rem,5.2vw,3.8rem)}
+h2{font-size:clamp(1.7rem,3.4vw,2.5rem)}
+h3{font-size:clamp(1rem,1.9vw,1.25rem)}
+p,li{font-family:'JetBrains Mono',monospace;font-size:clamp(.75rem,1.25vw,.9rem);line-height:1.65}
+.slide-inner{width:100%;height:100%;display:flex;flex-direction:column;padding:44px 52px 84px;position:relative;background:var(--surface)}
+.sec-tag{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);opacity:.6;margin-bottom:6px}
+.rule{height:3px;background:var(--black);margin:14px 0 22px}
+/* ---- title slide ---- */
+.title-slide{background:var(--navy);color:var(--surface);align-items:flex-start;justify-content:center}
+.title-slide h1{color:var(--surface)}
+.vs-badge{display:inline-block;background:var(--red);color:#fff;border:var(--border);box-shadow:var(--shadow);padding:4px 16px;font-family:'Space Grotesk';font-weight:700;font-size:1.1rem;transform:rotate(-2deg);margin:0 6px}
+.title-meta{display:grid;grid-template-columns:repeat(4,auto);gap:0 40px;margin-top:40px;font-size:.72rem}
+.title-meta span{display:block;color:var(--yellow);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.title-meta b{font-weight:400;color:var(--surface)}
+/* ---- cards / columns ---- */
+.two-col{display:flex;gap:26px;flex:1;min-height:0}
+.pane{flex:1;border:var(--border);box-shadow:var(--shadow);background:#fff;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.pane-head{padding:12px 18px;border-bottom:3px solid var(--black);font-family:'Space Grotesk';font-weight:700;font-size:1.15rem;display:flex;align-items:center;justify-content:space-between}
+.pane-head .tag{font-family:'JetBrains Mono';font-size:.6rem;font-weight:700;letter-spacing:.1em;padding:2px 8px;border:2px solid var(--black)}
+.pane.seb .pane-head{background:var(--yellow)}
+.pane.prod .pane-head{background:var(--navy);color:var(--surface)}
+.pane.prod .pane-head .tag{border-color:var(--yellow);color:var(--yellow)}
+.pane-body{padding:16px 18px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.item{display:flex;gap:10px;align-items:flex-start}
+.item .mk{font-family:'Space Grotesk';font-weight:700;flex:0 0 auto;width:20px;text-align:center}
+.pro .mk{color:var(--green)}
+.con .mk{color:var(--red)}
+.item b{font-weight:700}
+.subhead{font-family:'Space Grotesk';font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;margin-top:6px;padding-bottom:4px;border-bottom:2px dashed rgba(0,0,0,.25)}
+.subhead.g{color:var(--green)}.subhead.r{color:var(--red)}
+/* ---- matrix table ---- */
+table.mx{width:100%;border-collapse:collapse;font-size:clamp(.66rem,1.05vw,.82rem);background:#fff;border:var(--border);box-shadow:var(--shadow)}
+table.mx th,table.mx td{border:2px solid var(--black);padding:8px 10px;text-align:left;vertical-align:top}
+table.mx thead th{font-family:'Space Grotesk';font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+table.mx thead th:nth-child(2){background:var(--yellow)}
+table.mx thead th:nth-child(3){background:var(--navy);color:var(--surface)}
+table.mx tbody th{font-weight:700;background:var(--surface);width:22%}
+.yes{color:var(--green);font-weight:700}
+.no{color:var(--red);font-weight:700}
+.mid{color:#B45309;font-weight:700}
+.callout{border:var(--border);box-shadow:var(--shadow);background:var(--red);color:#fff;padding:14px 18px;margin-top:16px;font-family:'Space Grotesk';font-weight:500;font-size:clamp(.85rem,1.4vw,1.05rem);display:flex;gap:12px;align-items:center}
+.callout .big{font-size:1.6rem}
+.callout.gold{background:var(--yellow);color:var(--black)}
+.callout.navy{background:var(--navy);color:var(--surface)}
+/* verdict */
+.verdict{display:flex;gap:26px;flex:1;min-height:0}
+.vcard{flex:1;border:var(--border);box-shadow:var(--shadow);background:#fff;padding:20px;display:flex;flex-direction:column;gap:10px}
+.vcard h3{font-size:1.3rem}
+.vcard .when{background:var(--surface);border-left:5px solid var(--navy);padding:8px 12px;font-size:.8rem}
+.pill{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border:2px solid var(--black);box-shadow:var(--shadow-sm)}
+.pill.seb{background:var(--yellow)}
+.pill.prod{background:var(--navy);color:var(--surface)}
+/* nav */
+#nav{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;z-index:200;background:var(--surface);border:var(--border);box-shadow:var(--shadow);padding:8px 16px}
+#nav button{font-family:'JetBrains Mono';font-size:.72rem;font-weight:700;letter-spacing:.08em;background:var(--yellow);color:var(--black);border:var(--border);box-shadow:var(--shadow-sm);padding:6px 16px;cursor:pointer;text-transform:uppercase}
+#nav button:active{transform:translate(2px,2px);box-shadow:none}
+#nav button:disabled{opacity:.35;cursor:not-allowed}
+#nav button.red{background:var(--red);color:#fff}
+#counter{font-size:.7rem;min-width:64px;text-align:center}
+#progress{position:fixed;top:0;left:0;height:4px;background:var(--red);transition:width .25s ease;z-index:300}
+.foot{position:absolute;bottom:20px;left:52px;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;opacity:.55}
+.snum{position:absolute;top:40px;right:52px;font-size:.7rem;letter-spacing:.1em;opacity:.6}
+@media(max-width:820px){.two-col,.verdict{flex-direction:column}.slide-inner{padding:28px 24px 84px}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div class="deck" id="deck">
+
+<!-- 1 TITLE -->
+<section class="slide active">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner title-slide">
+    <span class="meta-label">COMPARATIVE BRIEFING — PRODIGY REVIEW PH — v2026.07</span>
+    <div style="margin-top:auto"></div>
+    <h3 style="color:var(--yellow);letter-spacing:.06em">Exam Integrity — Two Approaches</h3>
+    <h1 style="margin-top:8px">SecureExam Browser <span class="vs-badge">VS</span><br>Prodigy Shield</h1>
+    <p style="max-width:60ch;margin-top:16px;color:#cdd5e0">A side-by-side look at a native OS-level <b style="color:#fff">kiosk browser</b> and a cross-platform <b style="color:#fff">browser extension</b> — what each locks down, and the real-world cost of deploying it.</p>
+    <div class="title-meta">
+      <div><span>Contender A</span><b>SEB · Electron Kiosk</b></div>
+      <div><span>Contender B</span><b>Prodigy · Chromium Ext.</b></div>
+      <div><span>Author</span><b>Symphonics Co. Ltd.</b></div>
+      <div><span>Classification</span><b>INTERNAL / DRAFT</b></div>
+    </div>
+    <div style="margin-top:auto"></div>
+  </div>
+</section>
+
+<!-- 2 THE TWO APPROACHES -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner">
+    <div class="snum">01 / OVERVIEW</div>
+    <div class="sec-tag">§ 01 — The Two Approaches</div>
+    <h2>Same Goal, Opposite Philosophies</h2>
+    <div class="rule"></div>
+    <div class="two-col">
+      <div class="pane seb">
+        <div class="pane-head">SecureExam Browser <span class="tag">KIOSK APP</span></div>
+        <div class="pane-body">
+          <p><b>What it is:</b> a standalone Electron application the student installs and launches. It seizes the whole machine for one exam session.</p>
+          <p><b>Where it enforces:</b> the <b>operating system &amp; network layer</b> — below the web page.</p>
+          <p><b>Core idea:</b> “No student cooperation required.” It blocks escape routes at the OS itself.</p>
+          <p><b>Footprint:</b> Windows (full), Android (partial), PWA (weak). Installer, admin rights, registry edits.</p>
+        </div>
+      </div>
+      <div class="pane prod">
+        <div class="pane-head">Prodigy Shield <span class="tag">EXTENSION</span></div>
+        <div class="pane-body">
+          <p><b>What it is:</b> a Chrome / Brave browser extension that runs inside the exam tab on the Prodigy Review site.</p>
+          <p><b>Where it enforces:</b> the <b>browser &amp; web-page layer</b> — inside the tab.</p>
+          <p><b>Core idea:</b> “Lightweight, instant, cross-platform.” Detect, flag, and progressively lock out.</p>
+          <p><b>Footprint:</b> any desktop Chromium browser — Windows, <b>macOS</b>, Linux, ChromeOS. No install ceremony.</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot">SEB vs Prodigy Shield — Symphonics Co. Ltd.</div>
+  </div>
+</section>
+
+<!-- 3 MATRIX -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner">
+    <div class="snum">02 / MATRIX</div>
+    <div class="sec-tag">§ 02 — At a Glance</div>
+    <h2>Capability Matrix</h2>
+    <div class="rule"></div>
+    <table class="mx">
+      <thead><tr><th>Dimension</th><th>SecureExam Browser</th><th>Prodigy Shield</th></tr></thead>
+      <tbody>
+        <tr><th>Enforcement level</th><td class="yes">OS + network (deep)</td><td class="mid">Browser / page (soft)</td></tr>
+        <tr><th>Global hotkey block</th><td class="yes">~40 OS-wide + registry</td><td class="mid">In-page shortcuts only</td></tr>
+        <tr><th>Screen capture → black</th><td class="yes">Yes (OS display affinity)</td><td class="no">No (can't touch OS)</td></tr>
+        <tr><th>AI domain blocking</th><td class="yes">25+ at network layer</td><td class="mid">Not primary</td></tr>
+        <tr><th>Tab-switch / focus loss</th><td class="yes">Impossible (kiosk)</td><td class="yes">Detected → flag → lockout</td></tr>
+        <tr><th>Lockout + appeal flow</th><td class="no">Audit log only</td><td class="yes">Progressive + admin review</td></tr>
+        <tr><th>Install effort</th><td class="no">High (installer, admin)</td><td class="yes">Low (load in seconds)</td></tr>
+        <tr><th>Windows</th><td class="yes">Full</td><td class="yes">Full</td></tr>
+        <tr><th>macOS</th><td class="no">Very hard / unsupported</td><td class="yes">Works (Chrome/Brave)</td></tr>
+        <tr><th>iOS / iPad</th><td class="no">Not possible</td><td class="no">Not possible</td></tr>
+        <tr><th>Bypass risk</th><td class="mid">Registry admin edit</td><td class="mid">Student disables ext.</td></tr>
+      </tbody>
+    </table>
+    <div class="foot">Legend: green = strong · amber = partial · red = gap</div>
+  </div>
+</section>
+
+<!-- 4 SEB PROS -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner">
+    <div class="snum">03 / SEB</div>
+    <div class="sec-tag">§ 03 — SecureExam Browser <span class="pill seb">KIOSK</span></div>
+    <h2 style="color:var(--green)">SEB — Where It Wins</h2>
+    <div class="rule"></div>
+    <div class="two-col">
+      <div class="pane seb"><div class="pane-head">Strengths</div>
+        <div class="pane-body">
+          <div class="item pro"><span class="mk">+</span><p><b>OS-level lockdown.</b> Kiosk fullscreen with no chrome or title bar — the student physically cannot leave the session by ordinary means.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>~40 global hotkeys intercepted</b> before the OS reacts, plus registry edits that disable Task Manager and hide the taskbar.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Screen capture defeated.</b> The window renders solid black in screenshots, Snipping Tool, and screen recorders.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Network-layer AI block.</b> 25+ AI domains (and all subdomains) denied; admin-extensible.</p></div>
+        </div>
+      </div>
+      <div class="pane seb"><div class="pane-head">Strengths (cont.)</div>
+        <div class="pane-body">
+          <div class="item pro"><span class="mk">+</span><p><b>Clipboard control + poison.</b> Copy/paste disabled and the clipboard is wiped (and pre-poisoned) on exit.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Tamper-resistant audit trail.</b> Append-only JSONL log survives the session for evidence.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>No student compliance assumed.</b> Enforcement lives below the web page — not dependent on goodwill.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Offline-capable.</b> Local salted-SHA-256 auth; no remote dependency for controlled labs.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Highest ceiling of enforcement — when you control the hardware.</div>
+  </div>
+</section>
+
+<!-- 5 SEB CONS -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner">
+    <div class="snum">04 / SEB</div>
+    <div class="sec-tag">§ 04 — SecureExam Browser <span class="pill seb">KIOSK</span></div>
+    <h2 style="color:var(--red)">SEB — The Trade-offs</h2>
+    <div class="rule"></div>
+    <div class="two-col">
+      <div class="pane seb"><div class="pane-head">Deployment Pain</div>
+        <div class="pane-body">
+          <div class="item con"><span class="mk">✕</span><p><b>Very hard on macOS.</b> Needs a separate signed/notarized build; several Windows tricks (registry, taskbar, display-affinity) have no clean Mac equivalent.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Impossible on iOS / iPad.</b> Apple forbids kiosk-style third-party browsers; the whole model can't ship there.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Heavy install.</b> Every student must download an app, grant admin rights, and clear a first-run setup — a support burden at scale.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Per-OS maintenance.</b> Windows, Android, and PWA are three codepaths to build, sign, and keep in sync.</p></div>
+        </div>
+      </div>
+      <div class="pane seb"><div class="pane-head">Security Gaps</div>
+        <div class="pane-body">
+          <div class="item con"><span class="mk">✕</span><p><b>PWA target is weak</b> — fullscreen and Service-Worker interception are bypassable by opening another browser.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Admin bypass via registry edit</b> is possible on an unmanaged machine.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>No lockout / appeal workflow</b> — it records events but doesn't manage the incident.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Doesn't stop out-of-band cheating</b> — a second phone camera or device is untouched.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="callout"><span class="big">⚠</span><div>The headline issue: <b>SEB is painful-to-impossible to deploy on Mac and iOS.</b> Its strongest defenses are Windows-specific — so mixed-device cohorts fall outside its reach.</div></div>
+  </div>
+</section>
+
+<!-- 6 PRODIGY PROS -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner">
+    <div class="snum">05 / PRODIGY</div>
+    <div class="sec-tag">§ 05 — Prodigy Shield <span class="pill prod">EXTENSION</span></div>
+    <h2 style="color:var(--green)">Prodigy — Where It Wins</h2>
+    <div class="rule"></div>
+    <div class="two-col">
+      <div class="pane prod"><div class="pane-head">Strengths</div>
+        <div class="pane-body">
+          <div class="item pro"><span class="mk">+</span><p><b>Cross-platform by default.</b> Runs on any desktop Chromium browser — Windows, <b>macOS</b>, Linux, ChromeOS — the exact gap SEB can't cover.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Near-zero install friction.</b> Load the extension in seconds; no admin rights, no registry, no installer.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Preflight check</b> verifies the environment (fullscreen, DevTools, browser, tab) before the exam starts.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Progressive lockout</b> with integrity flags, an exit limit, and automatic penalty lockdown.</p></div>
+        </div>
+      </div>
+      <div class="pane prod"><div class="pane-head">Strengths (cont.)</div>
+        <div class="pane-body">
+          <div class="item pro"><span class="mk">+</span><p><b>Built-in appeal + admin review.</b> Locked students can appeal; admins resolve it from a live control center.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Remote config.</b> Rules (flag thresholds, exit limits, clipboard policy) update centrally without redeploying.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Single codebase.</b> One extension to maintain instead of per-OS native builds.</p></div>
+          <div class="item pro"><span class="mk">+</span><p><b>Fast to iterate.</b> Ship fixes the same day — no app-store or installer cycle.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Best reach and lowest rollout cost — ideal for bring-your-own-device cohorts.</div>
+  </div>
+</section>
+
+<!-- 7 PRODIGY CONS -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner">
+    <div class="snum">06 / PRODIGY</div>
+    <div class="sec-tag">§ 06 — Prodigy Shield <span class="pill prod">EXTENSION</span></div>
+    <h2 style="color:var(--red)">Prodigy — The Trade-offs</h2>
+    <div class="rule"></div>
+    <div class="two-col">
+      <div class="pane prod"><div class="pane-head">Depth Limits</div>
+        <div class="pane-body">
+          <div class="item con"><span class="mk">✕</span><p><b>Page-level only.</b> It can't reach the OS — no true screenshot blackout and no global Alt+Tab / Task-Manager block.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Student can disable it.</b> The extension can be toggled off or the browser closed outside the exam's guarded flow.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Softer signals.</b> Tab-switch and focus loss are <i>detected</i> and flagged — not physically prevented.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Depends on a backend.</b> Lockout, config, and appeals need the server reachable.</p></div>
+        </div>
+      </div>
+      <div class="pane prod"><div class="pane-head">Coverage Limits</div>
+        <div class="pane-body">
+          <div class="item con"><span class="mk">✕</span><p><b>Chromium only.</b> Needs Chrome / Edge / a Chromium browser; Brave is blocked at preflight, and Safari/Firefox aren't supported.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>No iOS / iPad.</b> Mobile Safari doesn't allow this class of extension — same wall SEB hits.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>No clipboard poisoning or network AI-domain deny-list</b> at SEB's depth.</p></div>
+          <div class="item con"><span class="mk">✕</span><p><b>Out-of-band cheating</b> (second device, phone camera) is unaddressed — as with SEB.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="callout navy"><span class="big">ℹ</span><div>Prodigy trades <b>raw depth for reach and speed</b>. It raises the effort to cheat without owning the machine — but a determined student with full device control has more room than under SEB.</div></div>
+  </div>
+</section>
+
+<!-- 8 DEPLOYMENT -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner">
+    <div class="snum">07 / DEPLOYMENT</div>
+    <div class="sec-tag">§ 07 — The Deciding Factor</div>
+    <h2>Platform Reach &amp; Rollout Cost</h2>
+    <div class="rule"></div>
+    <table class="mx">
+      <thead><tr><th>Platform</th><th>SecureExam Browser</th><th>Prodigy Shield</th></tr></thead>
+      <tbody>
+        <tr><th>Windows</th><td class="yes">✓ Full (best case)</td><td class="yes">✓ Full</td></tr>
+        <tr><th>macOS</th><td class="no">✕ Very hard — no clean port of core features</td><td class="yes">✓ Works (Chrome / Chromium)</td></tr>
+        <tr><th>iOS / iPadOS</th><td class="no">✕ Not possible (Apple policy)</td><td class="no">✕ Not possible (no extensions)</td></tr>
+        <tr><th>Android</th><td class="mid">~ Partial (WebView)</td><td class="no">✕ No desktop-class ext.</td></tr>
+        <tr><th>ChromeOS / Linux</th><td class="no">✕ Not targeted</td><td class="yes">✓ Works</td></tr>
+        <tr><th>Install per student</th><td class="no">App + admin rights + setup</td><td class="yes">Load extension (seconds)</td></tr>
+        <tr><th>Maintenance</th><td class="mid">3 per-OS codepaths</td><td class="yes">1 codebase + remote config</td></tr>
+      </tbody>
+    </table>
+    <div class="callout gold"><span class="big">★</span><div><b>This is the crux.</b> SEB is deepest on Windows but stalls on Mac and can't ship on iOS. Prodigy closes the <b>Mac</b> gap and rolls out instantly — while <b>iOS stays unsolved by both</b> (an honest, shared limitation).</div></div>
+  </div>
+</section>
+
+<!-- 9 VERDICT -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner">
+    <div class="snum">08 / VERDICT</div>
+    <div class="sec-tag">§ 08 — Recommendation</div>
+    <h2>When To Use Which</h2>
+    <div class="rule"></div>
+    <div class="verdict">
+      <div class="vcard">
+        <span class="pill seb">Choose SEB</span>
+        <h3>Controlled Windows labs, high-stakes</h3>
+        <p>When you own the hardware and the exam is high-stakes, SEB's OS-level lockdown is unmatched.</p>
+        <div class="when"><b>Ideal:</b> on-site Windows lab, proctored certification, managed device pool.</div>
+        <div class="when"><b>Avoid when:</b> students bring Macs / iPads, or you can't install software.</div>
+      </div>
+      <div class="vcard">
+        <span class="pill prod">Choose Prodigy</span>
+        <h3>BYOD, cross-platform, fast rollout</h3>
+        <p>When students use their own varied devices and you need to launch quickly, Prodigy's reach and lockout/appeal flow win.</p>
+        <div class="when"><b>Ideal:</b> remote / distributed exams, mixed Windows + Mac, quick deployment.</div>
+        <div class="when"><b>Avoid when:</b> you need screenshot blackout or OS-level hotkey blocking.</div>
+      </div>
+    </div>
+    <div class="callout navy"><span class="big">◆</span><div><b>Better together:</b> SEB for supervised Windows labs, Prodigy for everyone on Mac / BYOD — and pair either with randomized question pools, time limits, and human supervision. Neither solves iOS or out-of-band cheating alone.</div></div>
+  </div>
+</section>
+
+<!-- 10 END -->
+<section class="slide">
+  <div class="corner-brackets"><i class="cb-br"></i><i class="cb-bl"></i></div>
+  <div class="slide-inner title-slide" style="justify-content:center">
+    <span class="meta-label">END OF BRIEFING — SYMPHONICS CO. LTD.</span>
+    <h1 style="margin-top:18px">Depth vs. Reach.</h1>
+    <p style="max-width:64ch;margin-top:14px;color:#cdd5e0">SEB locks the machine hardest — but only where you control Windows. Prodigy reaches every desktop, Mac included, in seconds. The right answer depends on <b style="color:#fff">who owns the device</b>.</p>
+    <div class="title-meta" style="grid-template-columns:repeat(3,auto)">
+      <div><span>SEB</span><b>Deepest · Windows-bound</b></div>
+      <div><span>Prodigy</span><b>Broadest · Chromium</b></div>
+      <div><span>Shared gap</span><b>iOS · out-of-band</b></div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div id="nav">
+  <button id="prev">← Prev</button>
+  <span id="counter">01 / 10</span>
+  <button id="next">Next →</button>
+  <button id="fs" class="red">⛶ FS</button>
+</div>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')];
+let i=0;const N=slides.length;
+const counter=document.getElementById('counter');
+const prog=document.getElementById('progress');
+const prev=document.getElementById('prev');const next=document.getElementById('next');
+function pad(n){return String(n).padStart(2,'0')}
+function show(n){
+  i=Math.max(0,Math.min(N-1,n));
+  slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+  counter.textContent=pad(i+1)+' / '+pad(N);
+  prog.style.width=((i+1)/N*100)+'%';
+  prev.disabled=(i===0);next.disabled=(i===N-1);
+}
+next.onclick=()=>show(i+1);prev.onclick=()=>show(i-1);
+document.getElementById('fs').onclick=()=>{if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()}else{document.exitFullscreen&&document.exitFullscreen()}};
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();show(i+1)}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1)}
+  else if(e.key==='Home'){show(0)}else if(e.key==='End'){show(N-1)}
+  else if(e.key.toLowerCase()==='f'){document.getElementById('fs').click()}
+});
+show(0);
+</script>
+</body>
+</html>

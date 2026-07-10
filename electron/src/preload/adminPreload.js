@@ -28,6 +28,10 @@ contextBridge.exposeInMainWorld('sebAdmin', {
   getPlatform: () => process.platform,
   getVersion: () => ipcRenderer.invoke('admin:getVersion'),
 
+  // Remote Server Connection
+  testRemoteConnection: (url, token) => ipcRenderer.invoke('admin:testRemoteConnection', { url, token }),
+  syncConfigNow: () => ipcRenderer.invoke('admin:syncConfigNow'),
+
   // AI block list
   getBuiltinAiDomains: () => ipcRenderer.invoke('admin:getBuiltinAiDomains'),
   getBlockedAiDomains: () => ipcRenderer.invoke('admin:getBlockedAiDomains'),
