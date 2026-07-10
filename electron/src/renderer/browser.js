@@ -1203,36 +1203,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Modal actions
   chromeExitBtn.addEventListener('click', showExitPrompt);
   exitCancelBtn.addEventListener('click', hideExitPrompt);
-  exitSubmitBtn.addEventListener('click', async () => {
-    const passwordInput = document.getElementById('exit-password-input');
-    const hasPwd = await window.sebBrowser.hasExitPassword();
-    let pwdVal = '';
-    if (hasPwd && passwordInput) {
-      pwdVal = passwordInput.value;
-      if (!pwdVal) {
-        const errorMsg = document.getElementById('exit-password-error-msg');
-        if (errorMsg) {
-          errorMsg.textContent = 'Please enter the exit password.';
-          errorMsg.classList.remove('hidden');
-        }
-        return;
-      }
+  exitSubmitBtn.addEventListener('click', () => {
+    const exitDontAsk = document.getElementById('exit-dont-ask');
+    if (exitDontAsk && exitDontAsk.checked) {
+      try { sessionStorage.setItem('skipCloseConfirmation', 'true'); } catch (e) {}
     }
-    const success = await attemptExit(pwdVal);
-    if (success) {
-      const exitDontAsk = document.getElementById('exit-dont-ask');
-      if (exitDontAsk && exitDontAsk.checked) {
-        try { sessionStorage.setItem('skipCloseConfirmation', 'true'); } catch (e) {}
-      }
-    }
+    attemptExit();
   });
-
-  const exitPasswordInput = document.getElementById('exit-password-input');
-  if (exitPasswordInput) {
-    exitPasswordInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') exitSubmitBtn.click();
-    });
-  }
 
   // Admin Unlock Modal actions
   adminUnlockCancelBtn.addEventListener('click', hideAdminUnlockPrompt);
@@ -2007,6 +1984,17 @@ function closeTab(id) {
 function setupWebviewEvents(tab) {
   const { id, webviewElement } = tab;
 
+  // Instantly clear exam lock state as soon as navigation starts (before the new page loads)
+  // This prevents the delay where restrictions stay applied while the next page is loading.
+  webviewElement.addEventListener('did-start-navigation', (e) => {
+    if (!e.isMainFrame) return;
+    if (tab.isExamActive) {
+      tab.isExamActive = false;
+      isCurrentTabExamActive = false;
+      updateTabLockStyles();
+    }
+  });
+
   // Track Loading State
   webviewElement.addEventListener('did-start-loading', () => {
     tab.isLoading = true;
@@ -2601,9 +2589,13 @@ async function updateActiveExamStatus() {
       activeTab.isExamActive = false;
     }
     isCurrentTabExamActive = false;
+    // Apply restrictions immediately using the cleared state
     updateTabLockStyles();
     return;
   }
+
+  // Immediately apply current cached state — don't wait for the async JS scan
+  updateTabLockStyles();
   
   try {
     const result = await activeTab.webviewElement.executeJavaScript(`
@@ -2617,21 +2609,25 @@ async function updateActiveExamStatus() {
       })()
     `);
     
+    const prev = activeTab.isExamActive;
     activeTab.isExamActive = (result === true);
-    
-    const wasActive = isCurrentTabExamActive;
     isCurrentTabExamActive = (result === true);
-    updateTabLockStyles();
+    // Only re-render if state actually changed
+    if (prev !== activeTab.isExamActive) {
+      updateTabLockStyles();
+    }
   } catch (err) {
+    const prev = activeTab.isExamActive;
     activeTab.isExamActive = false;
     isCurrentTabExamActive = false;
-    updateTabLockStyles();
+    if (prev !== false) {
+      updateTabLockStyles();
+    }
   }
 }
 
-// Set up periodic exam status check — 5 s is sufficient; eager triggers on did-navigate / dom-ready
-// already give instant response when the student navigates to/from an exam page.
-setInterval(updateActiveExamStatus, 5000);
+// Reduce poll to 2 s for faster catch-up; primary triggers are navigation events.
+setInterval(updateActiveExamStatus, 2000);
 
 // ─── Exit Dialog ────────────────────────────────────────────────────────────
 
@@ -2664,30 +2660,21 @@ async function showExitPrompt() {
   }
 
   // Bypass close confirmation if the user checked "Don't ask me again" previously
-  // EXCEPT when an active exam is detected OR when an exit password is set
-  const hasPwd = await window.sebBrowser.hasExitPassword();
-  if (!isTakingExam && !hasPwd) {
+  // EXCEPT when an active exam is detected
+  if (!isTakingExam) {
     const skipConfirm = sessionStorage.getItem('skipCloseConfirmation') === 'true';
     if (skipConfirm || tabs.length <= 1) {
-      attemptExit('');
+      attemptExit();
       return;
     }
   }
 
   const modalContent = exitModal ? exitModal.querySelector('.modal-content') : null;
   const checkboxContainer = document.getElementById('exit-dont-ask-container');
-  const pwdContainer = document.getElementById('exit-password-container');
-
-  // Reset password fields
-  const pwdInput = document.getElementById('exit-password-input');
-  const pwdError = document.getElementById('exit-password-error-msg');
-  if (pwdInput) pwdInput.value = '';
-  if (pwdError) pwdError.classList.add('hidden');
 
   if (isTakingExam) {
     if (modalContent) modalContent.classList.add('exam-blocked');
     if (checkboxContainer) checkboxContainer.style.display = 'none';
-    if (pwdContainer) pwdContainer.classList.add('hidden');
 
     exitModalDesc.innerHTML = `
       <div class="exam-blocked-warning">
@@ -2702,20 +2689,10 @@ async function showExitPrompt() {
     }
   } else {
     if (modalContent) modalContent.classList.remove('exam-blocked');
-    
-    if (hasPwd) {
-      if (pwdContainer) pwdContainer.classList.remove('hidden');
-      if (checkboxContainer) checkboxContainer.style.display = 'none';
-      exitModalDesc.innerHTML = `Enter the supervisor exit password to close the application. You have <strong>${tabs.length}</strong> tab(s) open.`;
-      setTimeout(() => {
-        if (pwdInput) pwdInput.focus();
-      }, 50);
-    } else {
-      if (pwdContainer) pwdContainer.classList.add('hidden');
-      if (checkboxContainer) checkboxContainer.style.display = 'flex';
-      exitModalDesc.innerHTML = `Are you sure you want to close? You have <strong id="exit-modal-tab-count">${tabs.length}</strong> tab(s) open. Unsaved changes may be lost.`;
-    }
+    if (checkboxContainer) checkboxContainer.style.display = 'flex';
 
+    // Dynamically update the exit modal text with the current tab count
+    exitModalDesc.innerHTML = `Are you sure you want to close? You have <strong id="exit-modal-tab-count">${tabs.length}</strong> tab(s) open. Unsaved changes may be lost.`;
     if (exitSubmitBtn) exitSubmitBtn.style.display = 'block';
     if (exitCancelBtn) {
       exitCancelBtn.textContent = 'Cancel';
@@ -2731,11 +2708,6 @@ async function showExitPrompt() {
 
 function hideExitPrompt() {
   exitModal.classList.add('hidden');
-  const pwdInput = document.getElementById('exit-password-input');
-  const pwdError = document.getElementById('exit-password-error-msg');
-  if (pwdInput) pwdInput.value = '';
-  if (pwdError) pwdError.classList.add('hidden');
-
   if (examTabIdToReturnTo !== null) {
     switchTab(examTabIdToReturnTo);
     examTabIdToReturnTo = null;
@@ -2749,23 +2721,13 @@ function hideExitPrompt() {
   }
 }
 
-async function attemptExit(password = '') {
+async function attemptExit() {
   try {
     // Clear browsing history on exit for student privacy and security
     await window.sebBrowser.clearHistory();
-    const res = await window.sebBrowser.quit(password);
-    if (res && res.success === false) {
-      const errorMsg = document.getElementById('exit-password-error-msg');
-      if (errorMsg) {
-        errorMsg.textContent = res.error || 'Incorrect exit password. Please try again.';
-        errorMsg.classList.remove('hidden');
-      }
-      return false;
-    }
-    return true;
+    await window.sebBrowser.quit('');
   } catch (err) {
     console.error('Exit call failed', err);
-    return false;
   }
 }
 
