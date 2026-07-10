@@ -1203,13 +1203,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Modal actions
   chromeExitBtn.addEventListener('click', showExitPrompt);
   exitCancelBtn.addEventListener('click', hideExitPrompt);
-  exitSubmitBtn.addEventListener('click', () => {
-    const exitDontAsk = document.getElementById('exit-dont-ask');
-    if (exitDontAsk && exitDontAsk.checked) {
-      try { sessionStorage.setItem('skipCloseConfirmation', 'true'); } catch (e) {}
+  exitSubmitBtn.addEventListener('click', async () => {
+    const passwordInput = document.getElementById('exit-password-input');
+    const hasPwd = await window.sebBrowser.hasExitPassword();
+    let pwdVal = '';
+    if (hasPwd && passwordInput) {
+      pwdVal = passwordInput.value;
+      if (!pwdVal) {
+        const errorMsg = document.getElementById('exit-password-error-msg');
+        if (errorMsg) {
+          errorMsg.textContent = 'Please enter the exit password.';
+          errorMsg.classList.remove('hidden');
+        }
+        return;
+      }
     }
-    attemptExit();
+    const success = await attemptExit(pwdVal);
+    if (success) {
+      const exitDontAsk = document.getElementById('exit-dont-ask');
+      if (exitDontAsk && exitDontAsk.checked) {
+        try { sessionStorage.setItem('skipCloseConfirmation', 'true'); } catch (e) {}
+      }
+    }
   });
+
+  const exitPasswordInput = document.getElementById('exit-password-input');
+  if (exitPasswordInput) {
+    exitPasswordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') exitSubmitBtn.click();
+    });
+  }
 
   // Admin Unlock Modal actions
   adminUnlockCancelBtn.addEventListener('click', hideAdminUnlockPrompt);
@@ -2641,21 +2664,30 @@ async function showExitPrompt() {
   }
 
   // Bypass close confirmation if the user checked "Don't ask me again" previously
-  // EXCEPT when an active exam is detected
-  if (!isTakingExam) {
+  // EXCEPT when an active exam is detected OR when an exit password is set
+  const hasPwd = await window.sebBrowser.hasExitPassword();
+  if (!isTakingExam && !hasPwd) {
     const skipConfirm = sessionStorage.getItem('skipCloseConfirmation') === 'true';
     if (skipConfirm || tabs.length <= 1) {
-      attemptExit();
+      attemptExit('');
       return;
     }
   }
 
   const modalContent = exitModal ? exitModal.querySelector('.modal-content') : null;
-  const checkboxContainer = exitModal ? exitModal.querySelector('.modal-checkbox-container') : null;
+  const checkboxContainer = document.getElementById('exit-dont-ask-container');
+  const pwdContainer = document.getElementById('exit-password-container');
+
+  // Reset password fields
+  const pwdInput = document.getElementById('exit-password-input');
+  const pwdError = document.getElementById('exit-password-error-msg');
+  if (pwdInput) pwdInput.value = '';
+  if (pwdError) pwdError.classList.add('hidden');
 
   if (isTakingExam) {
     if (modalContent) modalContent.classList.add('exam-blocked');
     if (checkboxContainer) checkboxContainer.style.display = 'none';
+    if (pwdContainer) pwdContainer.classList.add('hidden');
 
     exitModalDesc.innerHTML = `
       <div class="exam-blocked-warning">
@@ -2670,10 +2702,20 @@ async function showExitPrompt() {
     }
   } else {
     if (modalContent) modalContent.classList.remove('exam-blocked');
-    if (checkboxContainer) checkboxContainer.style.display = 'flex';
+    
+    if (hasPwd) {
+      if (pwdContainer) pwdContainer.classList.remove('hidden');
+      if (checkboxContainer) checkboxContainer.style.display = 'none';
+      exitModalDesc.innerHTML = `Enter the supervisor exit password to close the application. You have <strong>${tabs.length}</strong> tab(s) open.`;
+      setTimeout(() => {
+        if (pwdInput) pwdInput.focus();
+      }, 50);
+    } else {
+      if (pwdContainer) pwdContainer.classList.add('hidden');
+      if (checkboxContainer) checkboxContainer.style.display = 'flex';
+      exitModalDesc.innerHTML = `Are you sure you want to close? You have <strong id="exit-modal-tab-count">${tabs.length}</strong> tab(s) open. Unsaved changes may be lost.`;
+    }
 
-    // Dynamically update the exit modal text with the current tab count
-    exitModalDesc.innerHTML = `Are you sure you want to close? You have <strong id="exit-modal-tab-count">${tabs.length}</strong> tab(s) open. Unsaved changes may be lost.`;
     if (exitSubmitBtn) exitSubmitBtn.style.display = 'block';
     if (exitCancelBtn) {
       exitCancelBtn.textContent = 'Cancel';
@@ -2689,6 +2731,11 @@ async function showExitPrompt() {
 
 function hideExitPrompt() {
   exitModal.classList.add('hidden');
+  const pwdInput = document.getElementById('exit-password-input');
+  const pwdError = document.getElementById('exit-password-error-msg');
+  if (pwdInput) pwdInput.value = '';
+  if (pwdError) pwdError.classList.add('hidden');
+
   if (examTabIdToReturnTo !== null) {
     switchTab(examTabIdToReturnTo);
     examTabIdToReturnTo = null;
@@ -2702,13 +2749,23 @@ function hideExitPrompt() {
   }
 }
 
-async function attemptExit() {
+async function attemptExit(password = '') {
   try {
     // Clear browsing history on exit for student privacy and security
     await window.sebBrowser.clearHistory();
-    await window.sebBrowser.quit('');
+    const res = await window.sebBrowser.quit(password);
+    if (res && res.success === false) {
+      const errorMsg = document.getElementById('exit-password-error-msg');
+      if (errorMsg) {
+        errorMsg.textContent = res.error || 'Incorrect exit password. Please try again.';
+        errorMsg.classList.remove('hidden');
+      }
+      return false;
+    }
+    return true;
   } catch (err) {
     console.error('Exit call failed', err);
+    return false;
   }
 }
 

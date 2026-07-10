@@ -972,8 +972,18 @@ ipcMain.handle('admin:saveBlockedAiDomains', (_, domains) => {
   return { success: true };
 });
 
-// Quit with confirmation only (no exit password check needed)
-ipcMain.handle('admin:quit', () => {
+// Quit with confirmation and password verification
+ipcMain.handle('admin:quit', (event, password) => {
+  const cfg = config.get();
+  const isFromAdmin = event.sender.getURL().includes('admin.html');
+  
+  if (cfg.exitPasswordHash && !isFromAdmin) {
+    if (password === undefined || password === null || !config.verifyExitPassword(password)) {
+      auditLog.log('SESSION_EXIT_FAILED', { reason: 'Incorrect exit password' });
+      return { success: false, error: 'Incorrect exit password. Please try again.' };
+    }
+  }
+
   auditLog.log('SESSION_EXIT', { authorized: true });
   examMode = false;
   if (examWindow && !examWindow.isDestroyed()) {
