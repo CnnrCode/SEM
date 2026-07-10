@@ -137,7 +137,42 @@ const BUILTIN_AI_DOMAINS = [
   'gauthmath.com',
   // Translation AI (used to cheat via foreign-language lookup)
   'deepl.com',
+  // AI Chat apps that use .com TLDs (bypass the .ai TLD rule)
+  'dola.com',               // Dola AI — confirmed bypassing filter
+  'character.com',
+  'chatsonic.com',
+  'writesonic.com',
+  'chat.com',               // OpenAI redirect alias
+  'hix.ai',
+  'typeai.com',
+  'aichat.com',
+  'youchat.com',
+  'chatbase.co',
+  'chatbot.com',
+  'getmerlin.in',           // Merlin AI browser extension backend
+  'aiassist.com',
+  'cohesive.so',
+  'harpa.ai',
+  'jenni.ai',
+  'sudowrite.com',
+  'novelai.net',
+  'inferkit.com',
+  'textcortex.com',
+  'simplified.com',
+  'aiseo.ai',
+  'anyword.com',
+  'peppertype.ai',
+  'nichesss.com',
+  'smartwriter.ai',
+  'hyperwrite.ai',
+  'longshot.ai',
+  'compose.ai',
+  'magic.dev',
+  'agent.ai',
+  'venice.ai',
+  'chat.deepseek.com',
 ];
+
 
 // Backend APIs used by wrapper/custom AI applications
 const BUILTIN_AI_API_BACKENDS = [
@@ -621,8 +656,20 @@ function isInputBlocked(text) {
     'writesonic',
     'suno',
     'udio',
-    'elevenlabs'
+    'elevenlabs',
+    'dola',
+    'chatsonic',
+    'getmerlin',
+    'cohesive',
+    'jenni',
+    'sudowrite',
+    'novelai',
+    'textcortex',
+    'hyperwrite',
+    'longshot',
+    'venice'
   ];
+
 
   for (const keyword of AI_KEYWORDS) {
     if (lower.includes(keyword)) {
