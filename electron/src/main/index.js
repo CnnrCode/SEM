@@ -33,6 +33,32 @@ const auditLog = require('./auditLog');
 const history = require('./history');
 const downloads = require('./downloads');
 
+// ─── Global Exception Guard ───────────────────────────────────────────────────
+//
+// Electron has a known race condition on sites like LinkedIn that perform rapid
+// multi-step redirects: a render frame can be disposed between when an internal
+// dom-ready / did-navigate event fires and when Electron's own browser_init.js
+// tries to access WebFrameMain to dispatch IPC messages.  This throws:
+//   "Render frame was disposed before WebFrameMain could be accessed"
+// from inside node:electron/js2c/browser_init, which bypasses our own try/catch
+// guards and shows the native Electron "JavaScript error in main process" dialog.
+//
+// We swallow ONLY this specific internal error; all other uncaught exceptions are
+// re-thrown so genuine crashes are still visible.
+process.on('uncaughtException', (err) => {
+  if (err && typeof err.message === 'string' &&
+      err.message.includes('Render frame was disposed')) {
+    // Benign race condition from Electron internals — log and discard silently
+    console.warn('[Main] Suppressed disposed-frame race condition:', err.message);
+    return;
+  }
+  // All other uncaught exceptions — crash as normal
+  console.error('[Main] Uncaught exception:', err);
+  throw err;
+});
+
+
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let examWindow = null;
