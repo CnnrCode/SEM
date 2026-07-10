@@ -195,6 +195,179 @@ const BUILTIN_AI_API_BACKENDS = [
   'gateway.ai.cloudflare.com',
 ];
 
+// ─── Web Proxy / Bypass Detection ────────────────────────────────────────────
+// Proxy servers let students reach blocked AI sites via a relay. We block:
+//   1. Raw IP address hostnames (no legitimate exam site uses bare IPs)
+//   2. Known web proxy domains
+//   3. Common proxy URL patterns (encoded target URLs in query params)
+//   4. Common proxy path segments
+
+const BUILTIN_PROXY_DOMAINS = [
+  // Major public web proxies
+  'croxyproxy.com', 'croxyproxy.rocks', 'croxy.network',
+  'proxysite.com', 'proxysites.net',
+  'hide.me',
+  'hidemyass.com',
+  'kproxy.com',
+  'filterbypass.me',
+  'proxyunblocker.org',
+  'unblocksites.co',
+  'unblockweb.me',
+  'proxyium.com',
+  'weboproxy.com',
+  'zend2.com',
+  'proxyfish.com',
+  'youtubeunblocked.live',
+  'proxy-site.com',
+  'freeproxy.win',
+  'web-bypass.com',
+  'proxybrowser.net',
+  'anonymouse.org',
+  'whoer.net',
+  'protonvpn.com',
+  '4everproxy.com',
+  'blockaway.net',
+  'vpnbook.com',
+  'spysearcher.com',
+  'proxyservers.pro',
+  'free-proxy-list.net',
+  'proxynova.com',
+  'sslproxies.org',
+  'us-proxy.org',
+  'proxylist.geonode.com',
+  'proxyscrape.com',
+  'openproxy.space',
+  'spys.one',
+  // Tunnel / VPN-as-proxy services
+  'vpnoverview.com',
+  'urban-vpn.com',
+  'tunnelbear.com',
+  'windscribe.com',
+  'browsec.com',
+  'touchvpn.net',
+  'ultrasurf.us',
+  'psiphon.ca',
+  'hotspotshield.com',
+  'zenmate.com',
+  'betternet.co',
+  'hoxx.com',
+  'hola.org',
+  'setupvpn.com',
+  'speedify.com',
+  'proxyman.io',
+  // Translate-as-proxy (Google Translate can proxy any page)
+  'translate.google.com',
+  'translate.goo.ne.jp',
+];
+
+// Query-parameter keys commonly used by web proxies to encode the target URL
+const PROXY_PARAM_KEYS = [
+  '__cpo', 'url', 'u', 'q', 'goto', 'go', 'proxy', 'site',
+  'target', 'dest', 'destination', 'redirect', 'ref', 'link',
+  'fetch', 'browse', 'visit', 'page', 'load',
+];
+
+// Path segments that indicate a proxying function
+const PROXY_PATH_SEGMENTS = [
+  '/proxy/', '/fetch/', '/browse/', '/load/', '/surf/',
+  '/gateway/', '/relay/', '/mirror/', '/tunnel/',
+  '/unblocker', '/bypass', '/anonymize',
+];
+
+// Regex: matches a bare IPv4 address hostname (any port)
+const IPV4_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
+// Regex: IPv6 literal (with or without brackets)
+const IPV6_REGEX = /^\[?[0-9a-f:]+\]?$/i;
+
+/**
+ * Decode a string value that might be base64 or percent-encoded,
+ * and check if it contains a blocked AI domain.
+ */
+function encodedValueHitsBlockedDomain(value) {
+  if (!value) return false;
+  const candidates = [value];
+  // Try percent-decode
+  try { candidates.push(decodeURIComponent(value)); } catch {}
+  // Try base64-decode (standard and URL-safe)
+  try {
+    const b64 = value.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = Buffer.from(b64, 'base64').toString('utf8');
+    if (decoded.includes('://') || decoded.includes('.')) candidates.push(decoded);
+  } catch {}
+
+  for (const candidate of candidates) {
+    // Check if the decoded value contains any blocked AI domain
+    const lower = candidate.toLowerCase();
+    for (const domain of BUILTIN_AI_DOMAINS) {
+      const d = domain.replace(/^www\./, '');
+      if (lower.includes(d)) return true;
+    }
+    // Also check the top-level domain against known AI patterns
+    if (lower.includes('gemini') || lower.includes('chatgpt') ||
+        lower.includes('openai') || lower.includes('anthropic') ||
+        lower.includes('claude') || lower.includes('copilot') ||
+        lower.includes('bard') || lower.includes('perplexity') ||
+        lower.includes('deepseek') || lower.includes('mistral')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Returns true if the URL appears to be a web proxy or bypass service.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isProxyBlocked(url) {
+  if (!url || url === 'about:blank' || url.startsWith('seb://')) return false;
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+
+  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
+  const pathname = parsed.pathname.toLowerCase();
+
+  // 1. Block raw IPv4 / IPv6 addresses
+  //    No legitimate exam site is accessed via a bare IP.
+  if (IPV4_REGEX.test(hostname) || IPV6_REGEX.test(hostname)) {
+    console.warn('[URLFilter] Blocked raw IP navigation (possible proxy):', url);
+    return true;
+  }
+
+  // 2. Block known proxy domains
+  for (const domain of BUILTIN_PROXY_DOMAINS) {
+    const d = domain.toLowerCase().replace(/^www\./, '');
+    if (hostname === d || hostname.endsWith('.' + d)) return true;
+  }
+
+  // 3. Detect proxy path segments
+  for (const seg of PROXY_PATH_SEGMENTS) {
+    if (pathname.includes(seg)) {
+      console.warn('[URLFilter] Blocked proxy path segment in URL:', url);
+      return true;
+    }
+  }
+
+  // 4. Detect encoded AI target URLs in query parameters
+  //    e.g. ?__cpo=aH0cHM6Ly9nZW1pbmkuZ29vZ2xlLmNvbQ (base64 for https://gemini.google.com)
+  for (const [key, value] of parsed.searchParams.entries()) {
+    const keyLower = key.toLowerCase();
+    if (PROXY_PARAM_KEYS.includes(keyLower) || keyLower.startsWith('__')) {
+      if (encodedValueHitsBlockedDomain(value)) {
+        console.warn('[URLFilter] Blocked proxy param with encoded AI target:', url);
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -261,13 +434,15 @@ function attach(webContents) {
 
     const isGame = isGameBlocked(url);
     const isAi = isAiBlocked(url, resType);
+    const isProxy = isProxyBlocked(url);
 
-    if (isAi || isGame) {
+    if (isAi || isGame || isProxy) {
       event.preventDefault();
-      auditLog.log(isGame ? 'GAME_URL_BLOCKED' : 'AI_URL_BLOCKED', { url });
+      const blockType = isProxy ? 'proxy' : isGame ? 'game' : 'ai';
+      auditLog.log(isProxy ? 'PROXY_URL_BLOCKED' : isGame ? 'GAME_URL_BLOCKED' : 'AI_URL_BLOCKED', { url });
       const owner = webContents.getOwnerBrowserWindow();
       if (owner && !owner.isDestroyed()) {
-        owner.webContents.send('browser:show-blocked-toast', { url, type: isGame ? 'game' : 'ai' });
+        owner.webContents.send('browser:show-blocked-toast', { url, type: blockType });
       }
       console.warn('[URLFilter] Blocked frame navigation to:', url);
     }
@@ -277,12 +452,14 @@ function attach(webContents) {
   webContents.setWindowOpenHandler(({ url }) => {
     const isGame = isGameBlocked(url);
     const isAi = isAiBlocked(url, 'mainFrame');
+    const isProxy = isProxyBlocked(url);
 
-    if (isAi || isGame) {
-      auditLog.log(isGame ? 'GAME_POPUP_BLOCKED' : 'AI_POPUP_BLOCKED', { url });
+    if (isAi || isGame || isProxy) {
+      const blockType = isProxy ? 'proxy' : isGame ? 'game' : 'ai';
+      auditLog.log(isProxy ? 'PROXY_POPUP_BLOCKED' : isGame ? 'GAME_POPUP_BLOCKED' : 'AI_POPUP_BLOCKED', { url });
       const owner = webContents.getOwnerBrowserWindow();
       if (owner && !owner.isDestroyed()) {
-        owner.webContents.send('browser:show-blocked-toast', { url, type: isGame ? 'game' : 'ai' });
+        owner.webContents.send('browser:show-blocked-toast', { url, type: blockType });
       }
       return { action: 'deny' };
     }
@@ -313,13 +490,15 @@ function attach(webContents) {
 
     const isGame = isGameBlocked(url);
     const isAi = isAiBlocked(url, 'mainFrame');
+    const isProxy = isProxyBlocked(url);
 
-    if (isAi || isGame) {
+    if (isAi || isGame || isProxy) {
       event.preventDefault();
-      auditLog.log(isGame ? 'GAME_REDIRECT_BLOCKED' : 'AI_REDIRECT_BLOCKED', { url });
+      const blockType = isProxy ? 'proxy' : isGame ? 'game' : 'ai';
+      auditLog.log(isProxy ? 'PROXY_REDIRECT_BLOCKED' : isGame ? 'GAME_REDIRECT_BLOCKED' : 'AI_REDIRECT_BLOCKED', { url });
       const owner = webContents.getOwnerBrowserWindow();
       if (owner && !owner.isDestroyed()) {
-        owner.webContents.send('browser:show-blocked-toast', { url, type: isGame ? 'game' : 'ai' });
+        owner.webContents.send('browser:show-blocked-toast', { url, type: blockType });
       }
       console.warn('[URLFilter] Blocked redirect to:', url);
     }
@@ -532,9 +711,13 @@ function init() {
 
       const isGame = isGameBlocked(url);
       const isAi = isAiBlocked(url, details.resourceType);
+      const isProxy = (details.resourceType === 'mainFrame' || details.resourceType === 'subFrame')
+        ? isProxyBlocked(url)
+        : false;
 
-      if (isAi || isGame) {
-        auditLog.log(isGame ? 'GAME_URL_BLOCKED' : 'AI_URL_BLOCKED', { url });
+      if (isAi || isGame || isProxy) {
+        const blockType = isProxy ? 'PROXY_URL_BLOCKED' : isGame ? 'GAME_URL_BLOCKED' : 'AI_URL_BLOCKED';
+        auditLog.log(blockType, { url });
 
         if (details.webContentsId) {
           try {
@@ -593,7 +776,7 @@ function init() {
   );
 }
 
-module.exports = { init, attach, isAiBlocked, getBuiltinAiDomains, isInputBlocked, isGameBlocked };
+module.exports = { init, attach, isAiBlocked, getBuiltinAiDomains, isInputBlocked, isGameBlocked, isProxyBlocked };
 
 /**
  * Check if the user input in the address bar should be blocked because it contains AI.
