@@ -8,7 +8,9 @@
     "start": "electron .",
     "start:admin": "electron . --admin",
     "build": "electron-builder",
+    "build:admin": "electron-builder --config electron-builder-admin.yml",
     "dist:win": "electron-builder --win",
+    "dist:win:admin": "electron-builder --win --config electron-builder-admin.yml",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux"
   },

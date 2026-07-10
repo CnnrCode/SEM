@@ -1,0 +1,50 @@
+appId: com.securexam.browser
+productName: Prodigy Browser
+copyright: Copyright © 2024 SecureExam
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - src/**/*
+  - "!src/**/*.map"
+
+win:
+  artifactName: "${productName} Admin Setup ${version}.${ext}"
+  target:
+    - target: nsis
+      arch: [x64]
+  requestedExecutionLevel: requireAdministrator
+  icon: build/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  installerHeaderIcon: build/icon.ico
+  include: build/installer-admin.nsh
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  category: public.app-category.education
+  icon: build/icon.icns
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+dmg:
+  title: SecureExam Browser Installer
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  category: Education
+  icon: build/icon.png
+  maintainer: SecureExam

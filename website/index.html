@@ -385,23 +385,19 @@
         <!-- Step 3 -->
         <div class="relative">
           <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">3</span>
-          <h3 class="text-lg font-bold text-slate-200">Set Admin & Exit Credentials</h3>
+          <h3 class="text-lg font-bold text-slate-200">Pre-Configured Student Lockdown</h3>
           <p class="text-slate-400 text-xs mt-2 leading-relaxed">
-            On the initial login run, you will be prompted to access the Admin Panel. Define a secure **Admin Password** (to access backend logs and setup) and an **Exit Password** (which must be inputted to close down the exam kiosk).
+            The standard installer runs directly in pre-configured student kiosk mode. It does not include the Admin Panel interface. If configurations (like passwords or whitelist domains) need custom tuning, supervisors deploy settings using a separate Admin Build distributed to authorized IT staff.
           </p>
         </div>
 
         <!-- Step 4 -->
         <div class="relative">
           <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">4</span>
-          <h3 class="text-lg font-bold text-slate-200">Initiate Secure Exam</h3>
+          <h3 class="text-lg font-bold text-slate-200">Launch Exam Instantly</h3>
           <p class="text-slate-400 text-xs mt-2 leading-relaxed">
-            Provide the whitelist target URL (default: <code class="bg-obsidian-light text-cyber-teal font-mono border border-obsidian-border px-1.5 py-0.5 rounded">prodigyreview.ph</code>). Clicking **Launch Exam** boots the machine into restricted kiosk mode immediately.
+            Launch the app to automatically lock down the system and navigate to the exam portal. On the student installer, all supervisor settings are pre-packaged, preventing any configuration bypasses or local modifications by students.
           </p>
-          <div class="mt-3 p-3 bg-cyber-teal/10 border border-cyber-teal/20 rounded-lg text-slate-300 text-xs flex gap-2">
-            <svg class="w-4 h-4 flex-shrink-0 text-cyber-teal" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
-            <span>To terminate any locked-down exam window: Press <code class="bg-obsidian-light border border-obsidian-border px-1 text-cyber-teal text-[10px] rounded font-mono font-bold">Ctrl+Shift+Alt+Q</code>, and input your Exit password.</span>
-          </div>
         </div>
 
       </div>
@@ -668,22 +664,22 @@
       <!-- FAQ item 2 -->
       <div class="bg-obsidian-light border border-obsidian-border hover:border-obsidian-borderHi rounded-xl overflow-hidden custom-transition">
         <button class="w-full p-6 text-left flex justify-between items-center gap-4 focus:outline-none" onclick="toggleFaq(1)">
-          <span class="text-sm font-bold text-slate-200">Both shortcuts launch the Admin Panel on fresh installation. Why?</span>
+          <span class="text-sm font-bold text-slate-200">Does the student installer include the Admin Panel?</span>
           <svg class="w-4 h-4 text-slate-500 transform transition-transform duration-200" id="faq-arrow-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
         </button>
         <div class="px-6 pb-6 text-xs text-slate-400 leading-relaxed hidden" id="faq-body-1">
-          This behavior is intentional. On a fresh deployment, the application cannot secure exams without passwords and settings. It bypasses kiosk launch and opens the setup dashboard directly. Once credentials are set and saved, the <strong>Prodigy Browser</strong> shortcut loads exam mode immediately on subsequent launches.
+          No. To prevent tampering, the standard student installer contains no admin code, HTML pages, or desktop configuration shortcuts. It starts the exam kiosk immediately. Configuration changes and setup parameters can only be adjusted via the separate **Admin Build**, which is distributed exclusively to authorized supervisors and IT staff.
         </div>
       </div>
 
       <!-- FAQ item 3 -->
       <div class="bg-obsidian-light border border-obsidian-border hover:border-obsidian-borderHi rounded-xl overflow-hidden custom-transition">
         <button class="w-full p-6 text-left flex justify-between items-center gap-4 focus:outline-none" onclick="toggleFaq(2)">
-          <span class="text-sm font-bold text-slate-200">How do supervisors exit the locked exam kiosk?</span>
+          <span class="text-sm font-bold text-slate-200">How do supervisors exit the locked student exam kiosk?</span>
           <svg class="w-4 h-4 text-slate-500 transform transition-transform duration-200" id="faq-arrow-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
         </button>
         <div class="px-6 pb-6 text-xs text-slate-400 leading-relaxed hidden" id="faq-body-2">
-          Press <code class="bg-obsidian border border-obsidian-border px-1.5 py-0.5 rounded text-cyber-teal font-mono text-[10px]">Ctrl+Shift+Alt+Q</code> on the target computer. An admin password window will prompt. Enter the supervisor key config defined during initial deployment to close down the browser container.
+          On systems running the student kiosk, supervisors exit by using the exit button in the browser (if the pre-packaged setup permits password-free exit), or by using credentials configured via the Admin build. The shortcut key combo <code class="bg-obsidian border border-obsidian-border px-1.5 py-0.5 rounded text-cyber-teal font-mono text-[10px]">Ctrl+Shift+Alt+Q</code> to access config settings is disabled on the student client.
         </div>
       </div>
 

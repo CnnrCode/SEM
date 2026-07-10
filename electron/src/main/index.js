@@ -22,6 +22,7 @@ const {
 } = require('electron');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 const { exec } = require('child_process');
 
 const config = require('./config');
@@ -90,10 +91,14 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(menu);
 
   const isAdminFlag = process.argv.includes('--admin');
+  const hasAdmin = fs.existsSync(path.join(__dirname, '../renderer/admin.html'));
 
-  if (isAdminFlag || config.isFirstRun()) {
+  if (hasAdmin && (isAdminFlag || config.isFirstRun())) {
     openAdminPanel();
   } else {
+    if (config.isFirstRun()) {
+      config.save({ firstRun: false });
+    }
     showSplash();
     const cfg = config.get();
     if (cfg.remoteServerUrl && cfg.features.syncConfigOnStartup) {
@@ -124,11 +129,13 @@ app.whenReady().then(() => {
 
   // Register the secret admin escape combo (only works if you know it)
   // Ctrl+Shift+Alt+Q → triggers admin password prompt
-  globalShortcut.register('Ctrl+Shift+Alt+Q', () => {
-    if (examMode) {
-      _promptAdminAccess();
-    }
-  });
+  if (hasAdmin) {
+    globalShortcut.register('Ctrl+Shift+Alt+Q', () => {
+      if (examMode) {
+        _promptAdminAccess();
+      }
+    });
+  }
 
   // Register developer testing shortcut for simulating multiple monitors
   // Ctrl+Shift+Alt+M → toggles simulated display hotplug

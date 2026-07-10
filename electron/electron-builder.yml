@@ -9,6 +9,10 @@ directories:
 files:
   - src/**/*
   - "!src/**/*.map"
+  - "!src/renderer/admin.html"
+  - "!src/renderer/admin.js"
+  - "!src/renderer/admin.css"
+  - "!src/preload/adminPreload.js"
 
 win:
   target:
@@ -23,7 +27,6 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   installerHeaderIcon: build/icon.ico
-  include: build/installer.nsh
 
 mac:
   target:
