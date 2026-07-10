@@ -5,6 +5,45 @@
 
 'use strict';
 
+// ─── Renderer-Side Global Error Guard ────────────────────────────────────────
+// Catch Promise rejections and errors thrown from executeJavaScript / IPC calls
+// that fail due to rapid frame disposal (any site with SPA navigation, redirects,
+// or iframes). Without this, the Electron error dialog surfaces to students.
+
+const BENIGN_RENDERER_ERRORS = [
+  'Render frame was disposed',
+  'Object has been destroyed',
+  'ERR_ABORTED',
+  'WebFrameMain is no longer valid',
+  'The webContents has been destroyed',
+  'Navigation was cancelled',
+  'Cannot read properties of null', // webview became null mid-nav
+];
+
+function isBenignWebviewError(msg) {
+  if (!msg) return false;
+  return BENIGN_RENDERER_ERRORS.some(s => msg.includes(s));
+}
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  const msg = (reason && (reason.message || String(reason))) || '';
+  if (isBenignWebviewError(msg)) {
+    console.warn('[Renderer] Suppressed benign webview async rejection:', msg);
+    event.preventDefault();
+  }
+});
+
+window.addEventListener('error', (event) => {
+  const msg = (event.error && event.error.message) || event.message || '';
+  if (isBenignWebviewError(msg)) {
+    console.warn('[Renderer] Suppressed benign webview error:', msg);
+    event.preventDefault();
+  }
+});
+
+
+
 let config = null;
 let examPreloadPath = '';
 let tabs = [];

@@ -35,28 +35,59 @@ const downloads = require('./downloads');
 
 // ─── Global Exception Guard ───────────────────────────────────────────────────
 //
-// Electron has a known race condition on sites like LinkedIn that perform rapid
-// multi-step redirects: a render frame can be disposed between when an internal
-// dom-ready / did-navigate event fires and when Electron's own browser_init.js
-// tries to access WebFrameMain to dispatch IPC messages.  This throws:
-//   "Render frame was disposed before WebFrameMain could be accessed"
-// from inside node:electron/js2c/browser_init, which bypasses our own try/catch
-// guards and shows the native Electron "JavaScript error in main process" dialog.
+// Electron has several known race conditions that can trigger when any site
+// performs rapid multi-step redirects, SPA navigations, or heavy iframe usage.
+// In these scenarios a render frame is disposed mid-flight and Electron's own
+// internal code (browser_init.js / api/web_contents.js) throws before our
+// application-level try/catch can intercept it.
 //
-// We swallow ONLY this specific internal error; all other uncaught exceptions are
-// re-thrown so genuine crashes are still visible.
+// The errors are benign — the navigation already succeeded — but without this
+// guard they show the native "JavaScript error in main process" dialog to users.
+//
+// We match on error messages that are known Electron-internal race strings.
+// All OTHER uncaught errors are still surfaced normally so genuine bugs remain
+// visible during development.
+
+const BENIGN_ELECTRON_ERRORS = [
+  // Frame disposed between dom-ready/did-navigate and IPC send
+  'Render frame was disposed before WebFrameMain could be accessed',
+  // WebContents destroyed while an async IPC was in flight
+  'Object has been destroyed',
+  // executeJavaScript called on a detached webview
+  'ERR_ABORTED',
+  // WebFrameMain gone before a synchronous IPC completes
+  'WebFrameMain is no longer valid',
+  // Happens when a webview is detached mid-navigation
+  'The webContents has been destroyed',
+  // Chromium internal abort on rapid navigation
+  'Navigation was cancelled',
+];
+
+function isBenignElectronError(err) {
+  if (!err || typeof err.message !== 'string') return false;
+  return BENIGN_ELECTRON_ERRORS.some(msg => err.message.includes(msg));
+}
+
+// Synchronous uncaught exceptions (from event callbacks, internal Electron code)
 process.on('uncaughtException', (err) => {
-  if (err && typeof err.message === 'string' &&
-      err.message.includes('Render frame was disposed')) {
-    // Benign race condition from Electron internals — log and discard silently
-    console.warn('[Main] Suppressed disposed-frame race condition:', err.message);
+  if (isBenignElectronError(err)) {
+    console.warn('[Main] Suppressed benign Electron race condition:', err.message);
     return;
   }
-  // All other uncaught exceptions — crash as normal
+  // Genuine uncaught exception — let Electron handle it normally
   console.error('[Main] Uncaught exception:', err);
   throw err;
 });
 
+// Asynchronous Promise rejections (from executeJavaScript, IPC handles, etc.)
+process.on('unhandledRejection', (reason) => {
+  if (isBenignElectronError(reason)) {
+    console.warn('[Main] Suppressed benign Electron async rejection:', reason && reason.message);
+    return;
+  }
+  // Genuine unhandled rejection — log but don't crash the main process
+  console.error('[Main] Unhandled rejection:', reason);
+});
 
 
 // ─── State ────────────────────────────────────────────────────────────────────
