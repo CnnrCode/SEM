@@ -1249,16 +1249,28 @@ app.on('web-contents-created', (event, contents) => {
     });
 
     // Push config directly from the main process on every page load.
+    // Guard with isDestroyed() — rapid-redirect sites (e.g. LinkedIn) can dispose
+    // the render frame between dom-ready firing and the .send() call, which throws
+    // "Render frame was disposed before WebFrameMain could be accessed".
     contents.on('dom-ready', () => {
-      const cfg = config.get();
-      // Strip sensitive fields before sending
-      const safeCfg = { ...cfg };
-      delete safeCfg.exitPasswordHash;
-      delete safeCfg.exitPasswordSalt;
-      delete safeCfg.adminPasswordHash;
-      delete safeCfg.adminPasswordSalt;
-      contents.send('seb:config', safeCfg);
+      if (contents.isDestroyed()) return;
+      try {
+        const cfg = config.get();
+        // Strip sensitive fields before sending
+        const safeCfg = { ...cfg };
+        delete safeCfg.exitPasswordHash;
+        delete safeCfg.exitPasswordSalt;
+        delete safeCfg.adminPasswordHash;
+        delete safeCfg.adminPasswordSalt;
+        contents.send('seb:config', safeCfg);
+      } catch (err) {
+        // Frame was disposed between the guard and the send — silently ignore
+        if (!err.message || !err.message.includes('disposed')) {
+          console.error('[Main] Failed to push seb:config on dom-ready:', err);
+        }
+      }
     });
+
 
     // Only forward warnings and errors from webviews to the terminal.
     // Level 0 = log/info (extremely noisy — every site's analytics spam),
