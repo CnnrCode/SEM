@@ -347,105 +347,133 @@
   <div class="border-t border-obsidian-border max-w-7xl mx-auto my-12"></div>
 
   <!-- Setup Guide Section -->
-  <section id="setup" class="py-20 px-6 md:px-12 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
-    
-    <!-- Left Column: Guide Text and Timeline Steps -->
-    <div class="lg:col-span-7 space-y-12">
-      <div>
-        <span class="text-cyber-teal font-mono text-[10px] tracking-widest uppercase font-bold">DEPLOYMENT GUIDE</span>
-        <h2 class="text-3xl md:text-4xl font-extrabold text-slate-100 mt-2 tracking-tight">Deploy in Under 5 Minutes</h2>
-        <p class="text-slate-400 text-sm mt-3">Follow these technical steps to install and lock down any Windows 10/11 system.</p>
-      </div>
-
-      <!-- Timeline Connector -->
-      <div class="space-y-12 border-l border-obsidian-border pl-6 relative">
-        
-        <!-- Step 1 -->
-        <div class="relative">
-          <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">1</span>
-          <h3 class="text-lg font-bold text-slate-200">Download the self-contained installer</h3>
-          <p class="text-slate-400 text-xs mt-2 leading-relaxed">
-            Download the installer bundle (<code class="bg-obsidian-light text-cyber-teal font-mono border border-obsidian-border px-1.5 py-0.5 rounded">Prodigy Browser Setup 1.0.0.exe</code>). There are no secondary node or runtime dependencies. Everything required to run security blocks is packaged inside.
-          </p>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="relative">
-          <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">2</span>
-          <h3 class="text-lg font-bold text-slate-200">Run with Administrator Privilege</h3>
-          <p class="text-slate-400 text-xs mt-2 leading-relaxed">
-            Right-click the executable and choose "Run as administrator". This allows the browser to register kernel-level keyboard listeners to prevent bypasses.
-          </p>
-          <div class="mt-3 p-3 bg-cyber-amber/10 border border-cyber-amber/20 rounded-lg text-cyber-amber text-xs flex gap-2">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-            <span>Windows SmartScreen may warn about unsigned executable properties. Click <strong>More Info &rarr; Run Anyway</strong>.</span>
-          </div>
-        </div>
-
-        <!-- Step 3 -->
-        <div class="relative">
-          <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">3</span>
-          <h3 class="text-lg font-bold text-slate-200">Pre-Configured Student Lockdown</h3>
-          <p class="text-slate-400 text-xs mt-2 leading-relaxed">
-            The standard installer runs directly in pre-configured student kiosk mode. It does not include the Admin Panel interface. If configurations (like passwords or whitelist domains) need custom tuning, supervisors deploy settings using a separate Admin Build distributed to authorized IT staff.
-          </p>
-        </div>
-
-        <!-- Step 4 -->
-        <div class="relative">
-          <span class="absolute -left-[33px] top-1.5 w-4.5 h-4.5 rounded-full bg-obsidian-light border-2 border-cyber-teal flex items-center justify-center text-[9px] text-cyber-teal font-mono font-bold">4</span>
-          <h3 class="text-lg font-bold text-slate-200">Launch Exam Instantly</h3>
-          <p class="text-slate-400 text-xs mt-2 leading-relaxed">
-            Launch the app to automatically lock down the system and navigate to the exam portal. On the student installer, all supervisor settings are pre-packaged, preventing any configuration bypasses or local modifications by students.
-          </p>
-        </div>
-
-      </div>
+  <section id="setup" class="py-20 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="mb-12">
+      <span class="text-cyber-teal font-mono text-[10px] tracking-widest uppercase font-bold">DEPLOYMENT WALKTHROUGH</span>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-100 mt-2 tracking-tight">Step-by-Step Installation Guide</h2>
+      <p class="text-slate-400 text-sm mt-3 max-w-2xl">Follow this visual, step-by-step walkthrough to deploy and configure the Secure Exam Browser on Windows 10/11 machines.</p>
     </div>
 
-    <!-- Right Column: Visual Anchor (Deployment Checklist Status) -->
-    <div class="lg:col-span-5 flex items-center justify-center">
-      <div class="w-full bg-obsidian-light border border-obsidian-border p-6 rounded-2xl relative shadow-xl font-mono text-xs text-slate-400 space-y-4">
-        <div class="text-slate-300 font-bold border-b border-obsidian-border pb-3 flex justify-between items-center">
-          <span>DEPLOYMENT CHECKLIST</span>
-          <span class="text-[10px] text-cyber-teal">STEP 4/4</span>
-        </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Left Column: Steps Navigation -->
+      <div class="lg:col-span-5 space-y-2 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin border-r border-obsidian-border/50">
         
-        <div class="space-y-3">
-          <div class="flex items-center gap-3">
-            <span class="w-4 h-4 rounded bg-cyber-emerald/10 border border-cyber-emerald/30 flex items-center justify-center text-cyber-emerald">✓</span>
-            <div class="flex-1">
-              <span class="text-slate-200">Binary Downloaded</span>
-              <div class="text-[10px] text-slate-500">Prodigy Browser Setup 1.0.0.exe</div>
-            </div>
+        <!-- Step 1 -->
+        <button onclick="setSetupStep(0)" id="step-btn-0" class="w-full text-left p-4 rounded-xl border border-cyber-teal/30 bg-obsidian-light/50 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-cyber-teal font-bold bg-cyber-teal/10 px-2 py-1 rounded" id="step-num-0">01</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-200" id="step-title-0">Download the Installer</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed" id="step-desc-0">Fetch the standard student bundle from the website release cards.</p>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="w-4 h-4 rounded bg-cyber-emerald/10 border border-cyber-emerald/30 flex items-center justify-center text-cyber-emerald">✓</span>
-            <div class="flex-1">
-              <span class="text-slate-200">Win32 Hook Permissions</span>
-              <div class="text-[10px] text-slate-500">Administrator access verified</div>
-            </div>
+        </button>
+
+        <!-- Step 2 -->
+        <button onclick="setSetupStep(1)" id="step-btn-1" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-1">02</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-1">Bypass SmartScreen</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Allow the unsigned locally-built setup app to execute on Windows.</p>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="w-4 h-4 rounded bg-cyber-emerald/10 border border-cyber-emerald/30 flex items-center justify-center text-cyber-emerald">✓</span>
-            <div class="flex-1">
-              <span class="text-slate-200">Credentials Configured</span>
-              <div class="text-[10px] text-slate-500">Admin and exit passwords encrypted</div>
-            </div>
+        </button>
+
+        <!-- Step 3 -->
+        <button onclick="setSetupStep(2)" id="step-btn-2" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-2">03</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-2">Elevate Privileges</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Accept the User Account Control prompt for system hook registrations.</p>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="w-4 h-4 rounded bg-cyber-teal/15 border border-cyber-teal/30 flex items-center justify-center text-cyber-teal animate-pulse">●</span>
-            <div class="flex-1">
-              <span class="text-slate-200">Exam Target Initialized</span>
-              <div class="text-[10px] text-cyber-teal">Ready to load prodigyreview.ph</div>
-            </div>
+        </button>
+
+        <!-- Step 4 -->
+        <button onclick="setSetupStep(3)" id="step-btn-3" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-3">04</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-3">Configure Install Path</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Select folder destination and execute file extraction wizard.</p>
+          </div>
+        </button>
+
+        <!-- Step 5 -->
+        <button onclick="setSetupStep(4)" id="step-btn-4" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-4">05</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-4">Desktop Icons Setup</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Confirm desktop launch shortcuts are created successfully.</p>
+          </div>
+        </button>
+
+        <!-- Step 6 -->
+        <button onclick="setSetupStep(5)" id="step-btn-5" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-5">06</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-5">First Launch Setup</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">The application redirects to the configuration parameters panel.</p>
+          </div>
+        </button>
+
+        <!-- Step 7 -->
+        <button onclick="setSetupStep(6)" id="step-btn-6" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-6">07</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-6">Set Security Credentials</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Establish primary supervisor Admin and Exit passwords.</p>
+          </div>
+        </button>
+
+        <!-- Step 8 -->
+        <button onclick="setSetupStep(7)" id="step-btn-7" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-7">08</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-7">Configure Domain Whitelist</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Input approved domains that student clients are allowed to browse.</p>
+          </div>
+        </button>
+
+        <!-- Step 9 -->
+        <button onclick="setSetupStep(8)" id="step-btn-8" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-8">09</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-8">Launch Secure Kiosk</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Trigger exam launching to lock desktop and load portal.</p>
+          </div>
+        </button>
+
+        <!-- Step 10 -->
+        <button onclick="setSetupStep(9)" id="step-btn-9" class="w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none">
+          <span class="font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded" id="step-num-9">10</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-400" id="step-title-9">Secure Exit Verification</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Supervisor inputs exit password to safely close container.</p>
+          </div>
+        </button>
+
+      </div>
+
+      <!-- Right Column: Visual Preview Panel -->
+      <div class="lg:col-span-7 bg-obsidian-light border border-obsidian-border p-6 rounded-2xl shadow-xl flex flex-col gap-6">
+        
+        <!-- Image Card -->
+        <div class="w-full aspect-[16/10] bg-obsidian border border-obsidian-border rounded-xl overflow-hidden flex items-center justify-center p-2">
+          <img id="setup-img" src="images/download1.png" alt="Setup Screenshot" class="max-w-full max-h-full object-contain rounded transition-opacity duration-200" />
+        </div>
+
+        <!-- Description -->
+        <div>
+          <h3 id="setup-title" class="text-lg font-bold text-slate-200">Download the Installer</h3>
+          <p id="setup-desc" class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Download the installer bundle (<code class="bg-obsidian-light text-cyber-teal font-mono border border-obsidian-border px-1.5 py-0.5 rounded">Prodigy Browser Setup 1.0.0.exe</code>) from the download section. There are no secondary runtime dependencies.
+          </p>
+          
+          <div id="setup-tip-container" class="mt-4 p-3 bg-cyber-teal/10 border border-cyber-teal/20 rounded-lg text-slate-300 text-xs flex gap-2">
+            <svg class="w-4 h-4 flex-shrink-0 text-cyber-teal" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            <span id="setup-tip">Save the installer to the desktop or a local drive for easy installation access.</span>
           </div>
         </div>
 
-        <div class="border-t border-obsidian-border pt-4 text-center">
-          <div class="text-[10px] text-slate-500">SYSTEM LOCKDOWN ENGINE IS COMPILED AND READY</div>
-        </div>
       </div>
+
     </div>
   </section>
 
@@ -828,8 +856,117 @@
       }
     }
 
+    // Setup Guide Steps Carousel Data
+    const setupSteps = [
+      {
+        title: "Download the Installer",
+        desc: "Download the standard installer bundle (<code>Prodigy Browser Setup 1.0.0.exe</code>) directly from the release cards. There are no external runtime or framework requirements — everything is fully self-contained.",
+        img: "images/download1.png",
+        tip: "Save the installer to the desktop or a local drive for easy installation access."
+      },
+      {
+        title: "Bypass SmartScreen",
+        desc: "Windows Defender SmartScreen may flag the locally-built client as unsigned. Click <strong>More Info</strong> and then choose <strong>Run anyway</strong> to continue executing the setup.",
+        img: "images/download2.png",
+        tip: "This alert shows for custom software not distributed through the official Microsoft App Store."
+      },
+      {
+        title: "Elevate Privileges",
+        desc: "Accept the User Account Control (UAC) prompts by clicking <strong>Yes</strong>. This gives the app administrative clearance to hook OS key inputs and secure keyboard commands.",
+        img: "images/download3.png",
+        tip: "Administrative access is necessary to override global Alt+Tab, WinKey, and desktop overlays."
+      },
+      {
+        title: "Configure Install Path",
+        desc: "Confirm your destination target folder (or leave the default) and click <strong>Install</strong> to unpack files and libraries on your hard drive.",
+        img: "images/download4.png",
+        tip: "Ensure your target drive has at least 200MB of free storage space."
+      },
+      {
+        title: "Desktop Icons Setup",
+        desc: "Verify that setup has completed and desktop shortcuts are created. The installation provides <strong>Prodigy Browser</strong> for student testing and <strong>Launch Admin Panel</strong> for exam setup.",
+        img: "images/download5.png",
+        tip: "If shortcuts do not show immediately, refresh the desktop dashboard."
+      },
+      {
+        title: "First Launch Setup",
+        desc: "Launch the Admin Panel shortcut. Since the database has no config records, the client will welcome you and prompt to build initial supervisor settings.",
+        img: "images/download6.png",
+        tip: "This is a one-time onboarding screen that triggers only when no configuration is active."
+      },
+      {
+        title: "Set Security Credentials",
+        desc: "Access the Passwords section in the setup. Define a strong <strong>Admin Password</strong> (to manage properties later) and an <strong>Exit Password</strong> (used to quit locked kiosk sessions).",
+        img: "images/download7.png",
+        tip: "Make sure you write down the exit password — it is required to leave the student browser."
+      },
+      {
+        title: "Configure Domain Whitelist",
+        desc: "Go to the Whitelist section and insert approved exam sites (e.g. <code>prodigyreview.ph</code>). The browser will prevent students from navigating anywhere except these domains.",
+        img: "images/download8.png",
+        tip: "You can add multiple resources like CDN hosts, styles, or assets required by the exam portal."
+      },
+      {
+        title: "Launch Secure Kiosk",
+        desc: "Click <strong>Launch Exam</strong> to close configuration parameters and boot into fullscreen kiosk mode. The browser disables all task managers, shortcuts, and overlays instantly.",
+        img: "images/download9.png",
+        tip: "All keyboards will remain locked to the active window until a supervisor overrides the session."
+      },
+      {
+        title: "Secure Exit Verification",
+        desc: "To shut down the locked client, press <strong>Ctrl+Shift+Alt+Q</strong>, fill in the exit password configured in Step 7, and close the exam portal.",
+        img: "images/download10.png",
+        tip: "This key sequence can be typed at any point during active exam kiosk browsing."
+      }
+    ];
+
+    let currentSetupStep = 0;
+
+    function setSetupStep(index) {
+      currentSetupStep = index;
+      const step = setupSteps[index];
+
+      // Update image, title, description, and tip
+      const imgEl = document.getElementById('setup-img');
+      const titleEl = document.getElementById('setup-title');
+      const descEl = document.getElementById('setup-desc');
+      const tipEl = document.getElementById('setup-tip');
+
+      // Fade transition
+      imgEl.style.opacity = '0';
+      
+      setTimeout(() => {
+        imgEl.src = step.img;
+        titleEl.innerText = step.title;
+        descEl.innerHTML = step.desc;
+        tipEl.innerText = step.tip;
+        imgEl.style.opacity = '1';
+      }, 150);
+
+      // Update button highlights
+      for (let i = 0; i < setupSteps.length; i++) {
+        const btn = document.getElementById(`step-btn-${i}`);
+        const num = document.getElementById(`step-num-${i}`);
+        const title = document.getElementById(`step-title-${i}`);
+        const desc = document.getElementById(`step-desc-${i}`);
+
+        if (i === index) {
+          btn.className = "w-full text-left p-4 rounded-xl border border-cyber-teal/30 bg-obsidian-light/50 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none";
+          num.className = "font-mono text-sm text-cyber-teal font-bold bg-cyber-teal/10 px-2 py-1 rounded";
+          title.className = "text-sm font-bold text-slate-200";
+          desc.className = "text-xs text-slate-400 mt-1 leading-relaxed";
+        } else {
+          btn.className = "w-full text-left p-4 rounded-xl border border-obsidian-border bg-obsidian-light/10 flex gap-4 items-start custom-transition hover:bg-obsidian-light focus:outline-none";
+          num.className = "font-mono text-sm text-slate-500 bg-obsidian-lighter px-2 py-1 rounded";
+          title.className = "text-sm font-bold text-slate-400";
+          desc.className = "text-xs text-slate-500 mt-1 leading-relaxed";
+        }
+      }
+    }
+
     // Set default presentation on load
     setActivePres(0);
+    setSetupStep(0);
   </script>
 </body>
 </html>
