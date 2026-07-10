@@ -527,10 +527,6 @@ function launchExam() {
   examWindow.on('blur', () => {
     if (!examMode || !examWindow || examWindow.isDestroyed()) return;
     
-    // Immediately push black overlay to renderer BEFORE doing anything else.
-    // This ensures Windows' Alt+Tab thumbnail captures a black screen, not exam content.
-    examWindow.webContents.send('browser:window-blur');
-
     // Log focus loss audit log trail
     if (!isVmDetected) {
       auditLog.log('FOCUS_LOST');
@@ -547,9 +543,6 @@ function launchExam() {
   });
 
   examWindow.on('focus', () => {
-    if (examWindow && !examWindow.isDestroyed()) {
-      examWindow.webContents.send('browser:window-focus');
-    }
     if (examMode && !isVmDetected) {
       auditLog.log('FOCUS_GAINED');
     }

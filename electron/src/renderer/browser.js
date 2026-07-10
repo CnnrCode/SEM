@@ -1282,22 +1282,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Handle window blur (lost focus) to hide exam content from task switcher preview
-  window.sebBrowser.onWindowBlur(() => {
-    const overlay = document.getElementById('blur-blackout-overlay');
-    if (overlay) {
-      overlay.classList.remove('hidden');
-    }
-  });
-
-  // Handle window focus (regained focus) to restore exam visibility
-  window.sebBrowser.onWindowFocus(() => {
-    const overlay = document.getElementById('blur-blackout-overlay');
-    if (overlay) {
-      overlay.classList.add('hidden');
-    }
-  });
-
   // Handle Tab Opening from setWindowOpenHandler
   window.sebBrowser.onOpenTab((url) => {
     createTab(url, true);

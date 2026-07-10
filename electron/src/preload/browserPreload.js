@@ -97,11 +97,5 @@ contextBridge.exposeInMainWorld('sebBrowser', {
   setThemeSource: (source) => ipcRenderer.invoke('browser:setThemeSource', source),
   onDownloadsUpdated: (callback) => {
     ipcRenderer.on('browser:downloads-updated', (event, list) => callback(list));
-  },
-  onWindowBlur: (callback) => {
-    ipcRenderer.on('browser:window-blur', () => callback());
-  },
-  onWindowFocus: (callback) => {
-    ipcRenderer.on('browser:window-focus', () => callback());
   }
 });

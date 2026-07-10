@@ -2338,7 +2338,8 @@ body.dyslexia-font textarea {
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  transition: margin-right 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+  transition: margin-right 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.2s;
+  will-change: margin-right, opacity;
   overflow: hidden;
   flex-shrink: 0;
   margin-right: calc(-1 * var(--sidebar-width, 320px));
