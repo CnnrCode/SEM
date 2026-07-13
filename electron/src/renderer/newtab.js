@@ -302,49 +302,6 @@ document.addEventListener('keydown', (e) => {
     }, 200);
   }
 
-  // 2.7. Mock Camera Controller (Dev Bypass)
-  const mockBtnOn = document.getElementById('mock-btn-on');
-  const mockBtnOff = document.getElementById('mock-btn-off');
-
-  function syncMockSelector() {
-    const isMockEnabled = localStorage.getItem('seb-mock-camera') === 'true';
-    if (isMockEnabled) {
-      if (mockBtnOn) mockBtnOn.classList.add('active');
-      if (mockBtnOff) mockBtnOff.classList.remove('active');
-    } else {
-      if (mockBtnOn) mockBtnOn.classList.remove('active');
-      if (mockBtnOff) mockBtnOff.classList.add('active');
-    }
-  }
-  syncMockSelector();
-
-  function setMockCameraState(enabled) {
-    localStorage.setItem('seb-mock-camera', enabled ? 'true' : 'false');
-    syncMockSelector();
-    
-    // Post message to parent frame
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage({ type: 'seb:newtab-set-mock-camera', enabled }, '*');
-    }
-  }
-
-  if (mockBtnOn) {
-    mockBtnOn.addEventListener('click', () => setMockCameraState(true));
-  }
-  if (mockBtnOff) {
-    mockBtnOff.addEventListener('click', () => setMockCameraState(false));
-  }
-
-  // Initialize mock camera status on startup (notifies parent frame)
-  const initialMockEnabled = localStorage.getItem('seb-mock-camera') === 'true';
-  if (initialMockEnabled) {
-    setTimeout(() => {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'seb:newtab-set-mock-camera', enabled: true }, '*');
-      }
-    }, 250);
-  }
-
   // 3. Canvas Animation Logic
   const canvas = document.getElementById('nt-canvas');
   if (!canvas) return;

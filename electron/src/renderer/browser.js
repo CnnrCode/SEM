@@ -984,9 +984,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (event.data.type === 'seb:newtab-set-proctor-cam') {
       try { localStorage.setItem('seb-proctor-cam', event.data.enabled ? 'true' : 'false'); } catch (e) {}
       syncProctorCam();
-    } else if (event.data.type === 'seb:newtab-set-mock-camera') {
-      try { localStorage.setItem('seb-mock-camera', event.data.enabled ? 'true' : 'false'); } catch (e) {}
-      checkCameraAvailability();
     }
   });
 
@@ -4219,18 +4216,6 @@ function syncProctorCam() {
 let isCameraAvailable = true;
 
 async function checkCameraAvailability() {
-  // If Mock Camera (Dev Bypass) is enabled, force camera availability to true
-  const isMockEnabled = localStorage.getItem('seb-mock-camera') === 'true';
-  if (isMockEnabled) {
-    const prev = isCameraAvailable;
-    isCameraAvailable = true;
-    if (prev !== isCameraAvailable) {
-      console.log(`[CameraCheck] Camera availability forced to true by developer mock bypass.`);
-      syncProctorCam();
-    }
-    return;
-  }
-
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const hasVideoInput = devices.some(device => device.kind === 'videoinput');
