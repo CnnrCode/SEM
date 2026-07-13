@@ -2882,3 +2882,140 @@ body.resizing-sidebar iframe {
   opacity: 0.5;
 }
 
+
+/* ─── Proctoring Webcam Widget ────────────────────────────────────────────── */
+
+#proctor-cam-container {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background: #070913;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.6), 0 0 15px var(--accent);
+  overflow: hidden;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease, transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#proctor-cam-container.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8) translate(20px, 20px);
+}
+
+#proctor-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror camera feed so it feels natural to look at */
+}
+
+/* Red warning indicator when camera is missing or permissions are blocked */
+#proctor-cam-container.camera-error {
+  border-color: var(--danger, #ef4444) !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.6), 0 0 15px var(--danger, #ef4444) !important;
+}
+
+#proctor-cam-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--danger, #ef4444);
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  padding: 10px;
+  animation: pulse-border 1.5s infinite alternate;
+}
+
+.warning-icon {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.warning-text {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Red blinking record badge overlay */
+#proctor-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 14, 26, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 4px 8px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.proctor-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--danger, #ef4444);
+  animation: blink-dot 1.2s infinite;
+}
+
+#proctor-status-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.03em;
+}
+
+/* Glowing laser scanner overlay */
+#proctor-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(to right, transparent, var(--accent), transparent);
+  box-shadow: 0 0 8px var(--accent);
+  opacity: 0.7;
+  z-index: 2;
+  pointer-events: none;
+  animation: scan-line 3s linear infinite;
+}
+
+#proctor-cam-container.camera-error #proctor-scan-line {
+  background: linear-gradient(to right, transparent, var(--danger, #ef4444), transparent) !important;
+  box-shadow: 0 0 8px var(--danger, #ef4444) !important;
+}
+
+/* Animations */
+@keyframes scan-line {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+@keyframes blink-dot {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes pulse-border {
+  from {
+    transform: scale(1.0);
+  }
+  to {
+    transform: scale(1.05);
+  }
+}
+

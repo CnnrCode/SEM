@@ -771,9 +771,27 @@ function init() {
           }
         }
       }
-      callback({ responseHeaders: details.responseHeaders });
+  // 3. Automatically allow media (camera/microphone) permissions for whitelisted domains
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    const url = webContents.getURL();
+    if (permission === 'media') {
+      if (isAllowedDomain(url)) {
+        console.log(`[PermissionRequest] Automatically ALLOWED media permission for whitelisted site: ${url}`);
+        return callback(true);
+      } else {
+        console.warn(`[PermissionRequest] BLOCKED media permission request for unauthorized site: ${url}`);
+        return callback(false);
+      }
     }
-  );
+    return callback(false);
+  });
+
+  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
+    if (permission === 'media') {
+      return isAllowedDomain(requestingOrigin);
+    }
+    return false;
+  });
 }
 
 module.exports = { init, attach, isAiBlocked, getBuiltinAiDomains, isInputBlocked, isGameBlocked, isProxyBlocked };

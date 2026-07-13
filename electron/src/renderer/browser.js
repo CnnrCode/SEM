@@ -154,6 +154,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize secure downloads tab controller
   initDownloadsTab();
 
+  // Initialize proctoring webcam if enabled
+  if (localStorage.getItem('seb-proctor-cam') === 'true') {
+    startProctorCam();
+  }
+
   // Initialize browsing history tab controller
   initHistoryTab();
 
@@ -978,6 +983,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       navigateActiveTabTo(url);
     } else if (event.data.type === 'seb:newtab-set-theme') {
       applyTheme(event.data.theme);
+    } else if (event.data.type === 'seb:newtab-set-proctor-cam') {
+      if (event.data.enabled) {
+        startProctorCam();
+      } else {
+        stopProctorCam();
+      }
     }
   });
 
@@ -4058,3 +4069,69 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => {
   showToast('Network connection lost. Please check your internet connection.', 'error');
 });
+
+
+// ─── Proctoring Webcam Stream Controller ─────────────────────────────────────
+
+let webcamStream = null;
+
+async function startProctorCam() {
+  const container = document.getElementById('proctor-cam-container');
+  const video = document.getElementById('proctor-video');
+  const warning = document.getElementById('proctor-cam-warning');
+  const statusText = document.getElementById('proctor-status-text');
+  
+  if (!container || !video) return;
+  
+  container.classList.remove('hidden', 'camera-error');
+  if (warning) warning.classList.add('hidden');
+  video.style.display = 'block';
+  if (statusText) statusText.textContent = 'AI SCANNING...';
+
+  try {
+    webcamStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 160, height: 160, facingMode: 'user' },
+      audio: false
+    });
+    video.srcObject = webcamStream;
+    console.log('[ProctorCam] Local webcam stream successfully started.');
+  } catch (err) {
+    console.error('[ProctorCam] Failed to acquire webcam stream:', err);
+    
+    container.classList.add('camera-error');
+    video.style.display = 'none';
+    if (warning) warning.classList.remove('hidden');
+    if (statusText) statusText.textContent = 'NO CAMERA DETECTED';
+    
+    if (window.sebBrowser && window.sebBrowser.logEvent) {
+      window.sebBrowser.logEvent('CAMERA_MISSING', { error: err.message || String(err) });
+    }
+  }
+}
+
+function stopProctorCam() {
+  const container = document.getElementById('proctor-cam-container');
+  const video = document.getElementById('proctor-video');
+  const warning = document.getElementById('proctor-cam-warning');
+  
+  if (webcamStream) {
+    webcamStream.getTracks().forEach(track => track.stop());
+    webcamStream = null;
+  }
+  
+  if (video) {
+    video.srcObject = null;
+    video.style.display = 'block';
+  }
+  
+  if (warning) {
+    warning.classList.add('hidden');
+  }
+  
+  if (container) {
+    container.classList.add('hidden');
+    container.classList.remove('camera-error');
+  }
+  
+  console.log('[ProctorCam] Local webcam stream stopped.');
+}

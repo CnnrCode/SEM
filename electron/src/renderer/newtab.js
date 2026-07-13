@@ -259,6 +259,49 @@ document.addEventListener('keydown', (e) => {
     });
   });
 
+  // 2.5. Proctoring Camera Controller
+  const camBtnOn = document.getElementById('cam-btn-on');
+  const camBtnOff = document.getElementById('cam-btn-off');
+
+  function syncCamSelector() {
+    const isCamEnabled = localStorage.getItem('seb-proctor-cam') === 'true';
+    if (isCamEnabled) {
+      if (camBtnOn) camBtnOn.classList.add('active');
+      if (camBtnOff) camBtnOff.classList.remove('active');
+    } else {
+      if (camBtnOn) camBtnOn.classList.remove('active');
+      if (camBtnOff) camBtnOff.classList.add('active');
+    }
+  }
+  syncCamSelector();
+
+  function setProctorCamState(enabled) {
+    localStorage.setItem('seb-proctor-cam', enabled ? 'true' : 'false');
+    syncCamSelector();
+    
+    // Post message to browser chrome parent window
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'seb:newtab-set-proctor-cam', enabled }, '*');
+    }
+  }
+
+  if (camBtnOn) {
+    camBtnOn.addEventListener('click', () => setProctorCamState(true));
+  }
+  if (camBtnOff) {
+    camBtnOff.addEventListener('click', () => setProctorCamState(false));
+  }
+
+  // Initialize proctor cam status on startup (notifies parent frame)
+  const initialCamEnabled = localStorage.getItem('seb-proctor-cam') === 'true';
+  if (initialCamEnabled) {
+    setTimeout(() => {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'seb:newtab-set-proctor-cam', enabled: true }, '*');
+      }
+    }, 200);
+  }
+
   // 3. Canvas Animation Logic
   const canvas = document.getElementById('nt-canvas');
   if (!canvas) return;

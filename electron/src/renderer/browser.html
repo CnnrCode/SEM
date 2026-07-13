@@ -467,6 +467,18 @@
         <span style="font-size: 12px; color: var(--text-muted);">Waiting for external monitors to be unplugged...</span>
       </div>
     </div>
+  <!-- Proctoring Webcam Feed -->
+  <div id="proctor-cam-container" class="hidden">
+    <div id="proctor-scan-line"></div>
+    <video id="proctor-video" autoplay playsinline muted></video>
+    <div id="proctor-cam-warning" class="hidden">
+      <div class="warning-icon">📷🚫</div>
+      <div class="warning-text">NO CAMERA</div>
+    </div>
+    <div id="proctor-badge">
+      <span class="proctor-dot"></span>
+      <span id="proctor-status-text">AI SCANNING...</span>
+    </div>
   </div>
 </body>
 </html>
