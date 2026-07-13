@@ -771,6 +771,10 @@ function init() {
           }
         }
       }
+      callback({ responseHeaders: details.responseHeaders });
+    }
+  );
+
   // 3. Automatically allow media (camera/microphone) permissions for whitelisted domains
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     const url = webContents.getURL();
