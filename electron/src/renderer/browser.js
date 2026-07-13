@@ -154,10 +154,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize secure downloads tab controller
   initDownloadsTab();
 
-  // Initialize proctoring webcam if enabled
-  if (localStorage.getItem('seb-proctor-cam') === 'true') {
-    startProctorCam();
-  }
+  // Sync proctoring webcam state on startup
+  syncProctorCam();
 
   // Initialize browsing history tab controller
   initHistoryTab();
@@ -984,11 +982,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (event.data.type === 'seb:newtab-set-theme') {
       applyTheme(event.data.theme);
     } else if (event.data.type === 'seb:newtab-set-proctor-cam') {
-      if (event.data.enabled) {
-        startProctorCam();
-      } else {
-        stopProctorCam();
-      }
+      try { localStorage.setItem('seb-proctor-cam', event.data.enabled ? 'true' : 'false'); } catch (e) {}
+      syncProctorCam();
     }
   });
 
@@ -2634,6 +2629,9 @@ function updateTabLockStyles() {
   if (window.sebBrowser && typeof window.sebBrowser.setExamActive === 'function') {
     window.sebBrowser.setExamActive(examActive);
   }
+
+  // Sync the proctoring camera state based on active exam
+  syncProctorCam();
 }
 
 async function updateActiveExamStatus() {
@@ -2655,11 +2653,20 @@ async function updateActiveExamStatus() {
     const result = await activeTab.webviewElement.executeJavaScript(`
       (function() {
         const text = document.body ? document.body.innerText : '';
+        const url = window.location.href;
+        
         const hasQuestionOf = /Question\\s+\\d+\\s+of\\s+\\d+/i.test(text);
         const hasQuestionSlash = /\\b\\d+\\s*\\/\\s*\\d+\\b/.test(text);
         const hasPrev = /\\bPrevious\\b/i.test(text);
         const hasNext = /\\bNext\\b/i.test(text);
-        return hasQuestionOf && hasQuestionSlash && hasPrev && hasNext;
+        const hasExamKeywords = /Diagnostic\\s+Exam|Exam\\s+in\\s+Progress|Start\\s+Exam/i.test(text);
+        const hasOptions = /\\b[A-D]\\)\\s+/i.test(text);
+        
+        const isStandardExam = hasQuestionOf && hasQuestionSlash && hasPrev && hasNext;
+        const isProdigyExam = (hasExamKeywords || hasOptions) && hasQuestionSlash && (hasPrev || hasNext);
+        const isUrlExam = url.includes('/exam') || url.includes('/attempt') || url.includes('/quiz');
+        
+        return isStandardExam || isProdigyExam || isUrlExam;
       })()
     `);
     
@@ -4134,4 +4141,18 @@ function stopProctorCam() {
   }
   
   console.log('[ProctorCam] Local webcam stream stopped.');
+}
+
+function syncProctorCam() {
+  const isCamSettingEnabled = localStorage.getItem('seb-proctor-cam') === 'true';
+  const examActive = isExamSessionActive();
+  if (isCamSettingEnabled && examActive) {
+    if (!webcamStream) {
+      startProctorCam();
+    }
+  } else {
+    if (webcamStream || (document.getElementById('proctor-cam-container') && !document.getElementById('proctor-cam-container').classList.contains('hidden'))) {
+      stopProctorCam();
+    }
+  }
 }
