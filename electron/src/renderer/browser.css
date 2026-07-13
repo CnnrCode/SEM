@@ -3027,6 +3027,9 @@ body.resizing-sidebar iframe {
   min-width: 320px !important;
   max-width: 320px !important;
   margin-right: -320px !important;
+  background: var(--bg-chrome);
+  backdrop-filter: blur(15px);
+  border-left: 1px solid var(--border-color);
 }
 
 #calc-sidebar.open {
@@ -3038,43 +3041,49 @@ body.resizing-sidebar iframe {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
-  background: #000000;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 16px;
+  background: transparent;
+  border-bottom: 1px solid var(--border-color);
   box-sizing: border-box;
 }
 
 .calc-mode-btn {
   background: transparent;
   border: none;
-  color: #ff9f0a; /* Orange iOS accent */
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  color: var(--text-muted);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background 0.15s ease, color 0.15s ease;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 .calc-mode-btn svg {
-  stroke: #ff9f0a;
+  stroke: var(--text-muted);
+  transition: stroke 0.2s ease;
 }
 
 .calc-mode-btn:hover {
-  background: rgba(255, 159, 10, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.calc-mode-btn:hover svg {
+  stroke: var(--text-main);
 }
 
 .calc-mode-btn.active {
-  background: #ff9f0a;
-  color: #000000 !important;
+  background: var(--accent);
+  color: var(--accent-text, #ffffff) !important;
 }
 
 .calc-mode-btn.active svg {
-  stroke: #000000;
+  stroke: var(--accent-text, #ffffff);
 }
 
 /* Scientific Extra Keys */
@@ -3082,16 +3091,22 @@ body.resizing-sidebar iframe {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 5px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .calc-btn.sci-op {
-  background: #252525 !important;
-  color: #ff9f0a !important;
-  font-size: 15px;
-  font-weight: 500;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: var(--accent) !important;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.02) !important;
+}
+
+.calc-btn.sci-op:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--accent) !important;
 }
 
 /* History overlay panel */
@@ -3101,7 +3116,8 @@ body.resizing-sidebar iframe {
   left: 0;
   width: 100%;
   height: calc(100% - 88px);
-  background: #000000;
+  background: var(--bg-chrome);
+  backdrop-filter: blur(15px);
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -3113,9 +3129,9 @@ body.resizing-sidebar iframe {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: -apple-system, sans-serif;
-  font-size: 14px;
-  color: #ffffff;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--text-main);
   font-weight: 600;
   margin-bottom: 12px;
 }
@@ -3123,10 +3139,11 @@ body.resizing-sidebar iframe {
 #calc-clear-history-btn {
   background: transparent;
   border: none;
-  color: #ef4444;
+  color: var(--danger, #ef4444);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  font-family: -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
 }
 
 .calc-history-list {
@@ -3138,28 +3155,28 @@ body.resizing-sidebar iframe {
 }
 
 .calc-history-item {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
   text-align: right;
   font-family: 'JetBrains Mono', monospace;
 }
 
 .calc-hist-expr {
   font-size: 12px;
-  color: #888888;
+  color: var(--text-muted);
 }
 
 .calc-hist-result {
   font-size: 18px;
-  color: #ffffff;
+  color: var(--accent); /* Highlight calculated history results with theme accent color! */
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .calc-history-empty {
-  font-family: -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
   font-size: 12px;
-  color: #555555;
+  color: var(--text-muted);
   text-align: center;
   margin-top: 40px;
 }
@@ -3167,30 +3184,31 @@ body.resizing-sidebar iframe {
 .calc-container {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 48px); /* Height minus the header */
-  padding: 20px;
-  gap: 20px;
-  background: #000000 !important; /* iOS Calculator solid black background */
+  height: calc(100% - 88px); /* Account for mode bar */
+  padding: 18px;
+  gap: 18px;
+  background: transparent !important; /* Let glassmorphic sidebar bg show through */
   box-sizing: border-box;
 }
 
 .calc-display-wrapper {
-  background: transparent !important;
-  border: none !important;
-  padding: 10px 0;
+  background: var(--bg-input, rgba(0, 0, 0, 0.25)) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 100px;
+  min-height: 90px;
   box-sizing: border-box;
 }
 
 .calc-history {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-  font-size: 16px;
-  color: #888888;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
   text-align: right;
-  min-height: 22px;
+  min-height: 20px;
   word-break: break-all;
   white-space: nowrap;
   overflow: hidden;
@@ -3198,17 +3216,17 @@ body.resizing-sidebar iframe {
 }
 
 .calc-display {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
-  font-size: 48px; /* Large iOS display font size */
-  font-weight: 300;
-  color: #ffffff !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px; /* Fixed sizing to fit display container nicely */
+  font-weight: 600;
+  color: var(--text-main) !important;
   background: transparent !important;
   border: none !important;
   outline: none !important;
   text-align: right;
   width: 100%;
   padding: 0;
-  margin-top: 5px;
+  margin-top: 4px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -3216,57 +3234,65 @@ body.resizing-sidebar iframe {
 .calc-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 10px;
 }
 
 .calc-btn {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-  font-size: 24px;
-  font-weight: 400;
-  aspect-ratio: 1; /* Force perfect circle */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  aspect-ratio: 1; /* Keep perfectly circular */
   border-radius: 50% !important;
-  border: none !important;
-  color: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-main) !important;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.15s ease, filter 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
   outline: none;
   padding: 0;
   width: 100%;
 }
 
-/* Number button styles (Dark gray) */
+/* Number button styles (Sleek dark translucent matching other tabs) */
 .calc-btn.num {
-  background: #333333 !important;
+  background: var(--bg-tab-inactive, rgba(255, 255, 255, 0.05)) !important;
 }
 
-/* Top row functions button styles (Medium gray) */
+/* Function button styles (Slightly lighter translucent) */
 .calc-btn.fn {
-  background: #a5a5a5 !important;
-  color: #000000 !important; /* iOS black text for top functions */
-  font-size: 20px;
+  background: rgba(255, 255, 255, 0.12) !important;
+  font-size: 15px;
 }
 
-/* Backspace arrow color match */
 .calc-btn.fn svg {
-  stroke: #000000 !important;
+  stroke: var(--text-main) !important;
 }
 
-/* Orange operations buttons */
+/* Theme accent matched operations buttons */
 .calc-btn.orange {
-  background: #ff9f0a !important;
-  font-size: 30px;
-  font-weight: 500;
+  background: var(--accent) !important;
+  color: var(--accent-text, #ffffff) !important;
+  border: none !important;
+  font-size: 22px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.02);
 }
 
 .calc-btn:hover {
-  filter: brightness(1.2);
-  transform: none !important;
+  background: var(--bg-tab-hover, rgba(255, 255, 255, 0.1)) !important;
+  border-color: var(--text-muted) !important;
+  filter: none !important;
+  transform: translateY(-1px);
+}
+
+.calc-btn.orange:hover {
+  background: var(--accent-hover, var(--accent)) !important;
+  opacity: 0.95;
+  box-shadow: 0 0 12px var(--accent);
 }
 
 .calc-btn:active {
-  filter: brightness(0.8);
+  transform: translateY(1px);
 }
 
