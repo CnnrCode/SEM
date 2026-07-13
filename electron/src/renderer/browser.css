@@ -3026,30 +3026,29 @@ body.resizing-sidebar iframe {
   display: flex;
   flex-direction: column;
   height: calc(100% - 48px); /* Height minus the header */
-  padding: 16px;
-  gap: 14px;
-  background: var(--bg-chrome);
+  padding: 20px;
+  gap: 20px;
+  background: #000000 !important; /* iOS Calculator solid black background */
   box-sizing: border-box;
 }
 
 .calc-display-wrapper {
-  background: var(--bg-input, rgba(0, 0, 0, 0.25));
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px 14px;
+  background: transparent !important;
+  border: none !important;
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 80px;
+  min-height: 100px;
   box-sizing: border-box;
 }
 
 .calc-history {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
-  font-size: 11px;
-  color: var(--text-muted);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-size: 16px;
+  color: #888888;
   text-align: right;
-  min-height: 16px;
+  min-height: 22px;
   word-break: break-all;
   white-space: nowrap;
   overflow: hidden;
@@ -3057,86 +3056,75 @@ body.resizing-sidebar iframe {
 }
 
 .calc-display {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text-main);
-  background: transparent;
-  border: none;
-  outline: none;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  font-size: 48px; /* Large iOS display font size */
+  font-weight: 300;
+  color: #ffffff !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
   text-align: right;
   width: 100%;
   padding: 0;
-  margin-top: 4px;
+  margin-top: 5px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .calc-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  flex: 1;
+  gap: 12px;
 }
 
 .calc-btn {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-tab-inactive, rgba(255, 255, 255, 0.05));
-  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  aspect-ratio: 1; /* Force perfect circle */
+  border-radius: 50% !important;
+  border: none !important;
+  color: #ffffff !important;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.15s ease, filter 0.15s ease;
   outline: none;
   padding: 0;
+  width: 100%;
+}
+
+/* Number button styles (Dark gray) */
+.calc-btn.num {
+  background: #333333 !important;
+}
+
+/* Top row functions button styles (Medium gray) */
+.calc-btn.fn {
+  background: #a5a5a5 !important;
+  color: #000000 !important; /* iOS black text for top functions */
+  font-size: 20px;
+}
+
+/* Backspace arrow color match */
+.calc-btn.fn svg {
+  stroke: #000000 !important;
+}
+
+/* Orange operations buttons */
+.calc-btn.orange {
+  background: #ff9f0a !important;
+  font-size: 30px;
+  font-weight: 500;
 }
 
 .calc-btn:hover {
-  background: var(--bg-tab-hover, rgba(255, 255, 255, 0.1));
-  border-color: var(--text-muted);
-  transform: translateY(-1px);
+  filter: brightness(1.2);
+  transform: none !important;
 }
 
 .calc-btn:active {
-  transform: translateY(1px);
-}
-
-.calc-btn.op {
-  color: var(--accent);
-  background: rgba(var(--accent-rgb, 96, 165, 250), 0.05);
-}
-
-.calc-btn.op:hover {
-  background: rgba(var(--accent-rgb, 96, 165, 250), 0.15);
-}
-
-.calc-btn.clear {
-  color: var(--danger, #ef4444);
-  background: rgba(239, 68, 68, 0.05);
-}
-
-.calc-btn.clear:hover {
-  background: rgba(239, 68, 68, 0.15);
-}
-
-.calc-btn.backspace {
-  color: var(--text-muted);
-}
-
-.calc-btn.equals {
-  grid-column: span 1;
-  background: var(--accent);
-  color: var(--accent-text, #ffffff);
-  border: none;
-  box-shadow: 0 0 10px rgba(var(--accent-rgb, 96, 165, 250), 0.3);
-}
-
-.calc-btn.equals:hover {
-  opacity: 0.9;
-  box-shadow: 0 0 15px rgba(var(--accent-rgb, 96, 165, 250), 0.5);
+  filter: brightness(0.8);
 }
 

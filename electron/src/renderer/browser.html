@@ -313,35 +313,32 @@
             <input type="text" id="calc-display" class="calc-display" readonly value="0">
           </div>
           <div class="calc-grid">
-            <button class="calc-btn clear" data-action="clear">C</button>
-            <button class="calc-btn backspace" data-action="backspace">⌫</button>
-            <button class="calc-btn op" data-val="(">(</button>
-            <button class="calc-btn op" data-val=")">)</button>
-            
-            <button class="calc-btn op" data-val="sin">sin</button>
-            <button class="calc-btn op" data-val="cos">cos</button>
-            <button class="calc-btn op" data-val="tan">tan</button>
-            <button class="calc-btn op" data-val="/">÷</button>
+            <button class="calc-btn fn backspace" data-action="backspace">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+            </button>
+            <button class="calc-btn fn clear" data-action="clear">AC</button>
+            <button class="calc-btn fn op" data-val="%">%</button>
+            <button class="calc-btn orange op" data-val="/">÷</button>
             
             <button class="calc-btn num" data-val="7">7</button>
             <button class="calc-btn num" data-val="8">8</button>
             <button class="calc-btn num" data-val="9">9</button>
-            <button class="calc-btn op" data-val="*">×</button>
+            <button class="calc-btn orange op" data-val="*">×</button>
             
             <button class="calc-btn num" data-val="4">4</button>
             <button class="calc-btn num" data-val="5">5</button>
             <button class="calc-btn num" data-val="6">6</button>
-            <button class="calc-btn op" data-val="-">-</button>
+            <button class="calc-btn orange op" data-val="-">−</button>
             
             <button class="calc-btn num" data-val="1">1</button>
             <button class="calc-btn num" data-val="2">2</button>
             <button class="calc-btn num" data-val="3">3</button>
-            <button class="calc-btn op" data-val="+">+</button>
+            <button class="calc-btn orange op" data-val="+">+</button>
             
+            <button class="calc-btn fn" data-action="negate">+/−</button>
             <button class="calc-btn num" data-val="0">0</button>
             <button class="calc-btn num" data-val=".">.</button>
-            <button class="calc-btn op" data-val="^">^</button>
-            <button class="calc-btn equals" data-action="equals">=</button>
+            <button class="calc-btn orange equals" data-action="equals">=</button>
           </div>
         </div>
       </div>

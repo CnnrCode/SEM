@@ -4286,19 +4286,30 @@ function initCalculator() {
         display.value = "0";
         if (history) history.textContent = "";
       } else if (action === 'backspace') {
-        if (inputVal.endsWith('sin(') || inputVal.endsWith('cos(') || inputVal.endsWith('tan(')) {
-          inputVal = inputVal.substring(0, inputVal.length - 4);
+        inputVal = inputVal.substring(0, inputVal.length - 1);
+        display.value = formatExpressionForDisplay(inputVal);
+      } else if (action === 'negate') {
+        if (!inputVal || inputVal === '0') return;
+        // Negate last number in expression
+        if (/^-?\d+(\.\d+)?$/.test(inputVal)) {
+          inputVal = inputVal.startsWith('-') ? inputVal.substring(1) : '-' + inputVal;
         } else {
-          inputVal = inputVal.substring(0, inputVal.length - 1);
+          const match = inputVal.match(/(-?\d+(\.\d+)?)$/);
+          if (match) {
+            const num = match[1];
+            const startIdx = inputVal.lastIndexOf(num);
+            const negatedNum = num.startsWith('-') ? num.substring(1) : '-' + num;
+            inputVal = inputVal.substring(0, startIdx) + negatedNum;
+          }
         }
-        display.value = inputVal || "0";
+        display.value = formatExpressionForDisplay(inputVal);
       } else if (action === 'equals') {
         if (!inputVal) return;
         
-        if (history) history.textContent = inputVal + " =";
+        if (history) history.textContent = formatExpressionForDisplay(inputVal);
         
         const res = evaluateExpression(inputVal);
-        display.value = res;
+        display.value = formatExpressionForDisplay(res);
         
         inputVal = (res === 'Error') ? "" : res;
       } else if (val) {
@@ -4308,23 +4319,30 @@ function initCalculator() {
           inputVal = "";
         }
         
-        if (val === 'sin' || val === 'cos' || val === 'tan') {
-          inputVal += val + "(";
-        } else {
-          inputVal += val;
-        }
-        display.value = inputVal;
+        inputVal += val;
+        display.value = formatExpressionForDisplay(inputVal);
       }
     });
   });
 }
 
+function formatExpressionForDisplay(expr) {
+  if (!expr) return "0";
+  let formatted = expr.replace(/\*/g, '×').replace(/\//g, '÷');
+  // Format numbers with thousands separators
+  formatted = formatted.replace(/\b\d+(\.\d+)?\b/g, (numStr) => {
+    const parts = numStr.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+  });
+  return formatted;
+}
+
 function evaluateExpression(expr) {
+  // Allow numbers, operators, brackets, decimals, and percentage sign
   let sanitized = expr.replace(/[^-+*/().0-9%^e\s|&]/g, '');
   sanitized = sanitized.replace(/\^/g, '**');
-  sanitized = sanitized.replace(/sin\(/g, 'Math.sin(');
-  sanitized = sanitized.replace(/cos\(/g, 'Math.cos(');
-  sanitized = sanitized.replace(/tan\(/g, 'Math.tan(');
+  sanitized = sanitized.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
   
   try {
     if (!sanitized.trim()) return 0;
