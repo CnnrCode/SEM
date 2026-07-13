@@ -2685,10 +2685,66 @@ async function updateActiveExamStatus() {
       updateTabLockStyles();
     }
   }
+
+  // Enforce camera presence: disable Start/Resume buttons on exam domain if no camera is available
+  if (activeTab && activeTab.webviewElement && activeTab.url && activeTab.url.includes('prodigyreview.ai')) {
+    const disableButtons = !isCameraAvailable;
+    activeTab.webviewElement.executeJavaScript(`
+      (function() {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const startBtn = buttons.find(b => b.textContent.includes('Start Diagnostic Exam') || (b.textContent.includes('Start') && b.textContent.includes('Exam')));
+        const resumeBtn = buttons.find(b => b.textContent.includes('Resume'));
+        
+        if (${disableButtons}) {
+          if (startBtn && !startBtn.dataset.originalHtml) {
+            startBtn.dataset.originalHtml = startBtn.innerHTML;
+            startBtn.dataset.originalBg = startBtn.style.background || '';
+            startBtn.disabled = true;
+            startBtn.style.opacity = '0.7';
+            startBtn.style.cursor = 'not-allowed';
+            startBtn.style.background = 'linear-gradient(to right, #4b5563, #374151)';
+            startBtn.innerHTML = '📷 Camera Required to Start Exam';
+          }
+          if (resumeBtn && !resumeBtn.dataset.originalHtml) {
+            resumeBtn.dataset.originalHtml = resumeBtn.innerHTML;
+            resumeBtn.dataset.originalBg = resumeBtn.style.background || '';
+            resumeBtn.disabled = true;
+            resumeBtn.style.opacity = '0.7';
+            resumeBtn.style.cursor = 'not-allowed';
+            resumeBtn.style.background = 'linear-gradient(to right, #4b5563, #374151)';
+            resumeBtn.innerHTML = '📷 Camera Required to Resume';
+          }
+        } else {
+          if (startBtn && startBtn.dataset.originalHtml) {
+            startBtn.disabled = false;
+            startBtn.style.opacity = '';
+            startBtn.style.cursor = '';
+            startBtn.style.background = startBtn.dataset.originalBg;
+            startBtn.innerHTML = startBtn.dataset.originalHtml;
+            delete startBtn.dataset.originalHtml;
+            delete startBtn.dataset.originalBg;
+          }
+          if (resumeBtn && resumeBtn.dataset.originalHtml) {
+            resumeBtn.disabled = false;
+            resumeBtn.style.opacity = '';
+            resumeBtn.style.cursor = '';
+            resumeBtn.style.background = resumeBtn.dataset.originalBg;
+            resumeBtn.innerHTML = resumeBtn.dataset.originalHtml;
+            delete resumeBtn.dataset.originalHtml;
+            delete resumeBtn.dataset.originalBg;
+          }
+        }
+      })()
+    `).catch(() => {});
+  }
 }
 
 // Reduce poll to 2 s for faster catch-up; primary triggers are navigation events.
 setInterval(updateActiveExamStatus, 2000);
+
+// Run initial camera hardware availability check and poll every 4 seconds to handle hot-plugging
+checkCameraAvailability();
+setInterval(checkCameraAvailability, 4000);
 
 // ─── Exit Dialog ────────────────────────────────────────────────────────────
 
@@ -4154,5 +4210,24 @@ function syncProctorCam() {
     if (webcamStream || (document.getElementById('proctor-cam-container') && !document.getElementById('proctor-cam-container').classList.contains('hidden'))) {
       stopProctorCam();
     }
+  }
+}
+
+let isCameraAvailable = true;
+
+async function checkCameraAvailability() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const hasVideoInput = devices.some(device => device.kind === 'videoinput');
+    const prev = isCameraAvailable;
+    isCameraAvailable = hasVideoInput;
+    
+    if (prev !== isCameraAvailable) {
+      console.log(`[CameraCheck] Camera availability changed: ${isCameraAvailable}`);
+      syncProctorCam();
+    }
+  } catch (err) {
+    console.error('[CameraCheck] Failed to check cameras:', err);
+    isCameraAvailable = false;
   }
 }
