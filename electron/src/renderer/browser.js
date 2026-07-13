@@ -856,7 +856,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Load saved sidebar width from localStorage
   const savedSidebarWidth = localStorage.getItem('seb-sidebar-width');
-  if (savedSidebarWidth && workspaceWrapper) {
+  if (savedSidebarWidth && savedSidebarWidth !== "null" && workspaceWrapper) {
     workspaceWrapper.style.setProperty('--sidebar-width', savedSidebarWidth + 'px');
   }
 

@@ -3026,6 +3026,11 @@ body.resizing-sidebar iframe {
   width: 320px !important;
   min-width: 320px !important;
   max-width: 320px !important;
+  margin-right: -320px !important;
+}
+
+#calc-sidebar.open {
+  margin-right: 0 !important;
 }
 
 /* Mode Switch Bar */
