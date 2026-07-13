@@ -126,6 +126,12 @@ const insertDrawBtn = document.getElementById('insert-draw-btn');
 
 let isNotepadActive = false;
 
+// Calculator Elements
+const toolbarCalcBtn = document.getElementById('toolbar-calc-btn');
+const calcSidebar = document.getElementById('calc-sidebar');
+const calcCloseBtn = document.getElementById('calc-close-btn');
+let isCalcActive = false;
+
 // Socratic AI Elements
 const toolbarAiBtn = document.getElementById('toolbar-ai-btn');
 const aiSidebar = document.getElementById('ai-sidebar');
@@ -156,6 +162,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Sync proctoring webcam state on startup
   syncProctorCam();
+
+  // Initialize secure offline calculator
+  initCalculator();
 
   // Initialize browsing history tab controller
   initHistoryTab();
@@ -781,8 +790,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     isNotepadActive = !isNotepadActive;
     if (isNotepadActive) {
-      // Close Socratic AI if open
+      // Close Socratic AI and Calculator if open
       if (isAiActive) toggleAi();
+      if (isCalcActive) toggleCalc();
       
       notepadSidebar.classList.add('open');
       toolbarNotepadBtn.classList.add('active');
@@ -803,8 +813,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     isAiActive = !isAiActive;
     if (isAiActive) {
-      // Close Notes if open
+      // Close Notes and Calculator if open
       if (isNotepadActive) toggleNotepad();
+      if (isCalcActive) toggleCalc();
 
       aiSidebar.classList.add('open');
       toolbarAiBtn.classList.add('active');
@@ -815,10 +826,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  function toggleCalc() {
+    if (!calcSidebar || !toolbarCalcBtn) return;
+
+    isCalcActive = !isCalcActive;
+    if (isCalcActive) {
+      // Close Notes and AI if open
+      if (isNotepadActive) toggleNotepad();
+      if (isAiActive) toggleAi();
+
+      calcSidebar.classList.add('open');
+      toolbarCalcBtn.classList.add('active');
+    } else {
+      calcSidebar.classList.remove('open');
+      toolbarCalcBtn.classList.remove('active');
+    }
+  }
+
   if (toolbarNotepadBtn) toolbarNotepadBtn.addEventListener('click', toggleNotepad);
   if (notepadCloseBtn) notepadCloseBtn.addEventListener('click', toggleNotepad);
   if (toolbarAiBtn) toolbarAiBtn.addEventListener('click', toggleAi);
   if (aiCloseBtn) aiCloseBtn.addEventListener('click', toggleAi);
+  if (toolbarCalcBtn) toolbarCalcBtn.addEventListener('click', toggleCalc);
+  if (calcCloseBtn) calcCloseBtn.addEventListener('click', toggleCalc);
 
   // Resizable Sidebar feature
   const resizers = document.querySelectorAll('.sidebar-resizer');
@@ -2617,6 +2647,11 @@ function updateTabLockStyles() {
     }
     if (aiSidebar) aiSidebar.classList.remove('open');
     isAiActive = false;
+
+    // Close Calculator sidebar (allowed during exam, but closed at startup/reset for clean workspace)
+    if (calcSidebar) calcSidebar.classList.remove('open');
+    if (toolbarCalcBtn) toolbarCalcBtn.classList.remove('active');
+    isCalcActive = false;
   } else {
     tabsBar.classList.remove('locked');
     
@@ -4229,5 +4264,76 @@ async function checkCameraAvailability() {
   } catch (err) {
     console.error('[CameraCheck] Failed to check cameras:', err);
     isCameraAvailable = false;
+  }
+}
+
+// ─── Calculator Logic ────────────────────────────────────────────────────────
+
+function initCalculator() {
+  const display = document.getElementById('calc-display');
+  const history = document.getElementById('calc-history');
+  if (!display) return;
+
+  let inputVal = "";
+
+  document.querySelectorAll('.calc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.getAttribute('data-val');
+      const action = btn.getAttribute('data-action');
+
+      if (action === 'clear') {
+        inputVal = "";
+        display.value = "0";
+        if (history) history.textContent = "";
+      } else if (action === 'backspace') {
+        if (inputVal.endsWith('sin(') || inputVal.endsWith('cos(') || inputVal.endsWith('tan(')) {
+          inputVal = inputVal.substring(0, inputVal.length - 4);
+        } else {
+          inputVal = inputVal.substring(0, inputVal.length - 1);
+        }
+        display.value = inputVal || "0";
+      } else if (action === 'equals') {
+        if (!inputVal) return;
+        
+        if (history) history.textContent = inputVal + " =";
+        
+        const res = evaluateExpression(inputVal);
+        display.value = res;
+        
+        inputVal = (res === 'Error') ? "" : res;
+      } else if (val) {
+        if (val === '.' && inputVal.endsWith('.')) return;
+        
+        if (display.value === 'Error') {
+          inputVal = "";
+        }
+        
+        if (val === 'sin' || val === 'cos' || val === 'tan') {
+          inputVal += val + "(";
+        } else {
+          inputVal += val;
+        }
+        display.value = inputVal;
+      }
+    });
+  });
+}
+
+function evaluateExpression(expr) {
+  let sanitized = expr.replace(/[^-+*/().0-9%^e\s|&]/g, '');
+  sanitized = sanitized.replace(/\^/g, '**');
+  sanitized = sanitized.replace(/sin\(/g, 'Math.sin(');
+  sanitized = sanitized.replace(/cos\(/g, 'Math.cos(');
+  sanitized = sanitized.replace(/tan\(/g, 'Math.tan(');
+  
+  try {
+    if (!sanitized.trim()) return 0;
+    const result = new Function(`"use strict"; return (${sanitized});`)();
+    if (result === undefined || isNaN(result) || !isFinite(result)) {
+      return 'Error';
+    }
+    return Number(result.toFixed(8)).toString();
+  } catch (err) {
+    return 'Error';
   }
 }

@@ -70,6 +70,9 @@
           <button id="toolbar-notepad-btn" class="menu-btn" title="Secure Notes">
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
           </button>
+          <button id="toolbar-calc-btn" class="menu-btn" title="Calculator">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><line x1="8" y1="10" x2="8.01" y2="10"></line><line x1="12" y1="10" x2="12.01" y2="10"></line><line x1="16" y1="10" x2="16.01" y2="10"></line><line x1="8" y1="14" x2="8.01" y2="14"></line><line x1="12" y1="14" x2="12.01" y2="14"></line><line x1="8" y1="18" x2="8.01" y2="18"></line><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          </button>
           <button id="toolbar-ai-btn" class="menu-btn" title="Socratic AI Tutor">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 6Z"/><path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z"/></svg>
           </button>
@@ -288,6 +291,57 @@
           <div class="ai-chat-input-area">
             <input type="text" id="ai-chat-input" placeholder="Ask a question..." autocomplete="off">
             <button id="ai-chat-send-btn">Send</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Slide-out Calculator Sidebar -->
+      <div id="calc-sidebar" class="notepad-sidebar">
+        <div class="sidebar-resizer" id="calc-sidebar-resizer"></div>
+        <div class="notepad-header">
+          <div class="notepad-header-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="notepad-icon"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><line x1="8" y1="10" x2="8.01" y2="10"></line><line x1="12" y1="10" x2="12.01" y2="10"></line><line x1="16" y1="10" x2="16.01" y2="10"></line><line x1="8" y1="14" x2="8.01" y2="14"></line><line x1="12" y1="14" x2="12.01" y2="14"></line><line x1="8" y1="18" x2="8.01" y2="18"></line><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            <span>Calculator</span>
+          </div>
+          <button id="calc-close-btn" class="notepad-close-btn" title="Hide Calculator">✕</button>
+        </div>
+        
+        <!-- Calculator Interface -->
+        <div class="calc-container">
+          <div class="calc-display-wrapper">
+            <div id="calc-history" class="calc-history"></div>
+            <input type="text" id="calc-display" class="calc-display" readonly value="0">
+          </div>
+          <div class="calc-grid">
+            <button class="calc-btn clear" data-action="clear">C</button>
+            <button class="calc-btn backspace" data-action="backspace">⌫</button>
+            <button class="calc-btn op" data-val="(">(</button>
+            <button class="calc-btn op" data-val=")">)</button>
+            
+            <button class="calc-btn op" data-val="sin">sin</button>
+            <button class="calc-btn op" data-val="cos">cos</button>
+            <button class="calc-btn op" data-val="tan">tan</button>
+            <button class="calc-btn op" data-val="/">÷</button>
+            
+            <button class="calc-btn num" data-val="7">7</button>
+            <button class="calc-btn num" data-val="8">8</button>
+            <button class="calc-btn num" data-val="9">9</button>
+            <button class="calc-btn op" data-val="*">×</button>
+            
+            <button class="calc-btn num" data-val="4">4</button>
+            <button class="calc-btn num" data-val="5">5</button>
+            <button class="calc-btn num" data-val="6">6</button>
+            <button class="calc-btn op" data-val="-">-</button>
+            
+            <button class="calc-btn num" data-val="1">1</button>
+            <button class="calc-btn num" data-val="2">2</button>
+            <button class="calc-btn num" data-val="3">3</button>
+            <button class="calc-btn op" data-val="+">+</button>
+            
+            <button class="calc-btn num" data-val="0">0</button>
+            <button class="calc-btn num" data-val=".">.</button>
+            <button class="calc-btn op" data-val="^">^</button>
+            <button class="calc-btn equals" data-action="equals">=</button>
           </div>
         </div>
       </div>
