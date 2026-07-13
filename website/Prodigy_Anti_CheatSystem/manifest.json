@@ -9,7 +9,7 @@
     "declarativeNetRequest"
   ],
   "host_permissions": [
-    "*://*.prodigyreview.ph/*",
+    "*://*.prodigyreview.ai/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
   ],
@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.prodigyreview.ph/*",
+        "*://*.prodigyreview.ai/*",
         "http://localhost/*",
         "http://127.0.0.1/*"
       ],

@@ -596,7 +596,7 @@ function setupHeaderRules() {
           ]
         },
         condition: {
-          urlFilter: "*://*.prodigyreview.ph/*",
+          urlFilter: "*://*.prodigyreview.ai/*",
           resourceTypes: ["main_frame", "sub_frame"]
         }
       }

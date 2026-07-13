@@ -14,6 +14,9 @@
 
 <body>
 
+  <!-- Dynamic Brain/Neural Network Canvas -->
+  <canvas id="nt-canvas"></canvas>
+
   <!-- Main Content -->
   <div id="newtab-root">
 
@@ -24,6 +27,32 @@
           d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
       </svg>
     </button>
+
+    <!-- Settings Popup Card -->
+    <div id="nt-settings-popup" class="hidden">
+      <div class="popup-title">New Tab Settings</div>
+      <div class="popup-section">
+        <label class="popup-label">Background Mode</label>
+        <div class="vis-options">
+          <button id="vis-btn-brain" class="vis-btn active" data-mode="brain">Neural Brain</button>
+          <button id="vis-btn-earth" class="vis-btn" data-mode="earth">Planet Earth</button>
+          <button id="vis-btn-none" class="vis-btn" data-mode="none">None</button>
+        </div>
+      </div>
+      <div class="popup-section">
+        <label class="popup-label">UI Color Theme</label>
+        <div class="theme-options">
+          <button class="theme-dot-btn dark active" data-theme="dark" title="Default Dark"></button>
+          <button class="theme-dot-btn cyberpunk" data-theme="cyberpunk" title="Cyberpunk"></button>
+          <button class="theme-dot-btn forest" data-theme="forest" title="Forest"></button>
+          <button class="theme-dot-btn sunset" data-theme="sunset" title="Sunset"></button>
+          <button class="theme-dot-btn light" data-theme="light" title="Light"></button>
+          <button class="theme-dot-btn monochrome" data-theme="monochrome" title="Monochrome"></button>
+          <button class="theme-dot-btn sakura" data-theme="sakura" title="Sakura"></button>
+          <button class="theme-dot-btn fire" data-theme="fire" title="Fire"></button>
+        </div>
+      </div>
+    </div>
 
     <!-- Hero -->
     <section id="nt-hero">

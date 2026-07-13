@@ -964,9 +964,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   navRefreshBtn.addEventListener('click', navigateRefresh);
   navHomeBtn.addEventListener('click', navigateHome);
 
-  // Listen for navigation requests from the newtab iframe search bar
+  // Listen for navigation and configuration requests from the newtab iframe
   window.addEventListener('message', async (event) => {
-    if (event.data && event.data.type === 'seb:newtab-navigate') {
+    if (!event.data) return;
+    
+    if (event.data.type === 'seb:newtab-navigate') {
       const url = event.data.url;
       const isBlocked = await window.sebBrowser.checkBlocked(url);
       if (isBlocked) {
@@ -974,6 +976,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
       navigateActiveTabTo(url);
+    } else if (event.data.type === 'seb:newtab-set-theme') {
+      applyTheme(event.data.theme);
     }
   });
 

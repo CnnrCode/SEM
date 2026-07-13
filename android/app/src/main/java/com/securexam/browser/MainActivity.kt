@@ -37,7 +37,7 @@ import java.net.URI
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        private const val DEFAULT_EXAM_URL = "https://www.prodigyreview.ph/"
+        private const val DEFAULT_EXAM_URL = "https://www.prodigyreview.ai/"
     }
 
     // ── Header Views ──────────────────────────────────────────────────────────

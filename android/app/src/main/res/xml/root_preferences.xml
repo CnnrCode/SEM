@@ -5,7 +5,7 @@
             app:key="exam_url"
             app:title="@string/pref_exam_url_title"
             app:useSimpleSummaryProvider="true"
-            app:defaultValue="https://www.prodigyreview.ph/" />
+            app:defaultValue="https://www.prodigyreview.ai/" />
 
         <EditTextPreference
             app:key="url_blacklist"

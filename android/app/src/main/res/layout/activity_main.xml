@@ -162,7 +162,7 @@
                     android:inputType="textUri"
                     android:maxLines="1"
                     android:selectAllOnFocus="true"
-                    android:text="www.prodigyreview.ph"
+                    android:text="www.prodigyreview.ai"
                     android:textColor="#f8fafc"
                     android:textSize="13sp"
                     android:gravity="center_vertical"
