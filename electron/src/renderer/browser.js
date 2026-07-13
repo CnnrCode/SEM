@@ -4267,14 +4267,52 @@ async function checkCameraAvailability() {
   }
 }
 
-// ─── Calculator Logic ────────────────────────────────────────────────────────
-
 function initCalculator() {
   const display = document.getElementById('calc-display');
   const history = document.getElementById('calc-history');
   if (!display) return;
 
   let inputVal = "";
+
+  // Mode switching (Basic vs Scientific)
+  const toggleModeBtn = document.getElementById('calc-toggle-mode-btn');
+  const sciKeys = document.getElementById('calc-sci-keys');
+  if (toggleModeBtn && sciKeys) {
+    toggleModeBtn.addEventListener('click', () => {
+      const isSciHidden = sciKeys.classList.toggle('hidden');
+      if (!isSciHidden) {
+        toggleModeBtn.classList.add('active');
+        display.style.fontSize = '32px';
+      } else {
+        toggleModeBtn.classList.remove('active');
+        display.style.fontSize = '48px';
+      }
+    });
+  }
+
+  // History panel switching
+  const toggleHistoryBtn = document.getElementById('calc-toggle-history-btn');
+  const historyPanel = document.getElementById('calc-history-panel');
+  if (toggleHistoryBtn && historyPanel) {
+    toggleHistoryBtn.addEventListener('click', () => {
+      const isHistoryHidden = historyPanel.classList.toggle('hidden');
+      if (!isHistoryHidden) {
+        toggleHistoryBtn.classList.add('active');
+        renderCalcHistory();
+      } else {
+        toggleHistoryBtn.classList.remove('active');
+      }
+    });
+  }
+
+  // Clear history action
+  const clearHistoryBtn = document.getElementById('calc-clear-history-btn');
+  if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener('click', () => {
+      localStorage.removeItem('seb-calc-history');
+      renderCalcHistory();
+    });
+  }
 
   document.querySelectorAll('.calc-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -4286,7 +4324,13 @@ function initCalculator() {
         display.value = "0";
         if (history) history.textContent = "";
       } else if (action === 'backspace') {
-        inputVal = inputVal.substring(0, inputVal.length - 1);
+        if (inputVal.endsWith('sin(') || inputVal.endsWith('cos(') || inputVal.endsWith('tan(')) {
+          inputVal = inputVal.substring(0, inputVal.length - 4);
+        } else if (inputVal.endsWith('sqrt(')) {
+          inputVal = inputVal.substring(0, inputVal.length - 5);
+        } else {
+          inputVal = inputVal.substring(0, inputVal.length - 1);
+        }
         display.value = formatExpressionForDisplay(inputVal);
       } else if (action === 'negate') {
         if (!inputVal || inputVal === '0') return;
@@ -4311,6 +4355,9 @@ function initCalculator() {
         const res = evaluateExpression(inputVal);
         display.value = formatExpressionForDisplay(res);
         
+        // Save calculation to history
+        saveCalcHistoryItem(inputVal, res);
+        
         inputVal = (res === 'Error') ? "" : res;
       } else if (val) {
         if (val === '.' && inputVal.endsWith('.')) return;
@@ -4319,18 +4366,70 @@ function initCalculator() {
           inputVal = "";
         }
         
-        inputVal += val;
+        if (val === 'sin' || val === 'cos' || val === 'tan') {
+          inputVal += val + "(";
+        } else {
+          inputVal += val;
+        }
         display.value = formatExpressionForDisplay(inputVal);
       }
     });
   });
 }
 
+function renderCalcHistory() {
+  const list = document.getElementById('calc-history-list');
+  if (!list) return;
+  list.innerHTML = "";
+  
+  let historyData = [];
+  try {
+    historyData = JSON.parse(localStorage.getItem('seb-calc-history')) || [];
+  } catch (e) {}
+  
+  if (historyData.length === 0) {
+    list.innerHTML = `<div class="calc-history-empty">No calculations yet</div>`;
+    return;
+  }
+  
+  historyData.forEach(item => {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'calc-history-item';
+    itemDiv.innerHTML = `
+      <div class="calc-hist-expr">${formatExpressionForDisplay(item.expr)}</div>
+      <div class="calc-hist-result">${formatExpressionForDisplay(item.result)}</div>
+    `;
+    list.appendChild(itemDiv);
+  });
+}
+
+function saveCalcHistoryItem(expr, result) {
+  if (!expr || result === 'Error') return;
+  let historyData = [];
+  try {
+    historyData = JSON.parse(localStorage.getItem('seb-calc-history')) || [];
+  } catch (e) {}
+  
+  // Prepend new item
+  historyData.unshift({ expr, result });
+  
+  // Limit to last 50 items
+  if (historyData.length > 50) {
+    historyData = historyData.slice(0, 50);
+  }
+  
+  localStorage.setItem('seb-calc-history', JSON.stringify(historyData));
+}
+
 function formatExpressionForDisplay(expr) {
   if (!expr) return "0";
   let formatted = expr.replace(/\*/g, '×').replace(/\//g, '÷');
+  formatted = formatted.replace(/sqrt\(/g, '√(');
+  formatted = formatted.replace(/pi/g, 'π');
+  
   // Format numbers with thousands separators
   formatted = formatted.replace(/\b\d+(\.\d+)?\b/g, (numStr) => {
+    if (['sin', 'cos', 'tan', 'pi'].includes(numStr)) return numStr;
     const parts = numStr.split('.');
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return parts.join('.');
@@ -4343,6 +4442,11 @@ function evaluateExpression(expr) {
   let sanitized = expr.replace(/[^-+*/().0-9%^e\s|&]/g, '');
   sanitized = sanitized.replace(/\^/g, '**');
   sanitized = sanitized.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+  sanitized = sanitized.replace(/sin\(/g, 'Math.sin(');
+  sanitized = sanitized.replace(/cos\(/g, 'Math.cos(');
+  sanitized = sanitized.replace(/tan\(/g, 'Math.tan(');
+  sanitized = sanitized.replace(/sqrt\(/g, 'Math.sqrt(');
+  sanitized = sanitized.replace(/pi/g, 'Math.PI');
   
   try {
     if (!sanitized.trim()) return 0;
